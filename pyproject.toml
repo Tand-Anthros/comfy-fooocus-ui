@@ -1,0 +1,16 @@
+[project]
+name = "fooocus-ui"
+description = "A Fooocus-style web interface on top of ComfyUI: prompt, styles, LoRAs, upscale/variation, inpaint/outpaint and metadata on one page, served at /fooocus. Adds no nodes."
+version = "1.0"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/Tand-Anthros/comfy-fooocus-ui"
+"Bug Tracker" = "https://github.com/Tand-Anthros/comfy-fooocus-ui/issues"
+
+[tool.comfy]
+PublisherId = "tandy"
+DisplayName = "Fooocus UI"
+Icon = ""
