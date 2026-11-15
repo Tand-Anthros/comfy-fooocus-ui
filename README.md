@@ -9,6 +9,8 @@ It adds **no nodes** and has **no dependencies**. After installing, open:
 http://127.0.0.1:8188/fooocus
 ```
 
+![example screen](example.png)
+
 ## What it does
 
 - **Text to image** — prompt, negative prompt, performance presets (or a custom step count), the Fooocus aspect
