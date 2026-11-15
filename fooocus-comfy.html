@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<!--
+  Fooocus-style UI for ComfyUI
+  Copyright (C) 2026 fooocus-ui contributors
+  License: GNU General Public License v3.0 or later (see LICENSE)
+
+  The interface layout, wording and style names follow Fooocus by lllyasviel
+  (https://github.com/lllyasviel/Fooocus, GPL-3.0). No Fooocus source code is included;
+  the style-name rule and the aspect ratio list are reimplemented from it.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fooocus-style UI for ComfyUI</title>
+<style>
+:root{
+  --bg:#0b0f19; --block:#1f2937; --border:#374151; --border2:#4b5563; --text:#f3f4f6; --dim:#9ca3af;
+  --blue:#2563eb; --slider:#93c5fd; --radius:8px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font:14px/1.45 "Source Sans Pro",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{display:flex;gap:16px;padding:16px;min-height:100%;align-items:flex-start}
+#left{flex:2 1 0;min-width:0;display:flex;flex-direction:column;gap:14px}
+#right{flex:0 0 420px;width:420px;min-width:0}
+body.simple #right{display:none}
+.block{background:var(--block);border:1px solid var(--border);border-radius:var(--radius)}
+button,select,input,textarea{font:inherit;color:inherit}
+textarea,select,input[type=text],input[type=number],input[type=search]{
+  width:100%;background:var(--block);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;outline:none}
+textarea:focus,select:focus,input:focus{border-color:#6b7280}
+textarea{resize:vertical;display:block}
+select{appearance:none;-webkit-appearance:none;padding-right:30px;text-overflow:ellipsis;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0h10L5 6z' fill='%23e5e7eb'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;background-size:9px}
+button{cursor:pointer;border:1px solid var(--border2);background:linear-gradient(to bottom right,#4b5563,#374151);border-radius:var(--radius);padding:8px 14px;font-weight:600}
+button:hover{background:linear-gradient(to bottom right,#586273,#4b5563)}
+button.small{padding:5px 10px;font-weight:500;font-size:13px}
+a{color:#60a5fa}
+[hidden]{display:none!important}
+
+input[type=checkbox],input[type=radio]{appearance:none;-webkit-appearance:none;width:16px;height:16px;margin:0;flex:none;cursor:pointer;
+  border:1px solid var(--border2);background:var(--block)}
+input[type=checkbox]{border-radius:4px}
+input[type=radio]{border-radius:50%}
+input[type=checkbox]:checked{border-color:var(--blue);background:var(--blue) url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.2 4.8a1 1 0 0 1 0 1.4l-5 5a1 1 0 0 1-1.4 0l-2-2a1 1 0 1 1 1.4-1.4L6.5 9.1l4.3-4.3a1 1 0 0 1 1.4 0z'/%3E%3C/svg%3E") center/14px no-repeat}
+input[type=radio]:checked{border-color:var(--blue);background:radial-gradient(circle,#fff 0 2.6px,var(--blue) 3.2px)}
+input[type=range]{accent-color:var(--slider);width:100%;margin:8px 0 0;display:block;height:16px;cursor:pointer}
+
+/* left column */
+#progress{padding:10px 12px}
+#bar{position:relative;height:24px;background:#111827;border-radius:6px;overflow:hidden}
+#bar-fill{position:absolute;inset:0 auto 0 0;width:0;background:#3b82f6;opacity:.65;transition:width .2s}
+#bar-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+#viewer{height:68vh;min-height:320px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#viewer img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in}
+#viewer svg{width:20px;height:20px;color:#9ca3af}
+#thumbs{display:flex;gap:8px;overflow-x:auto;padding:8px}
+#thumbs:empty{display:none}
+#thumbs img{height:84px;border-radius:6px;border:2px solid transparent;cursor:pointer;flex:none}
+#thumbs img.sel{border-color:var(--slider)}
+#prompt-row{display:flex;gap:16px;align-items:stretch}
+.area{flex:1;min-width:0}
+.grip{display:none;height:16px;touch-action:none;cursor:ns-resize}
+.grip::after{content:"";display:block;width:48px;height:4px;border-radius:2px;background:var(--border2);margin:6px auto 0}
+@media (pointer:coarse){.grip{display:block}}
+#prompt-row textarea{min-height:84px;font-size:15px}
+#btns{display:flex;flex-direction:column;gap:8px;width:120px}
+#btns button{flex:1;font-size:16px}
+#under{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
+#under label{display:flex;gap:8px;align-items:center;cursor:pointer}
+#conn{margin-left:auto;color:var(--dim);font-size:13px;display:flex;gap:6px;align-items:center}
+#conn i{width:8px;height:8px;border-radius:50%;background:#6b7280;display:inline-block}
+#conn.ok i{background:#22c55e} #conn.bad i{background:#ef4444}
+#msg{padding:10px 12px;border-color:#7f1d1d;background:#1c1113;white-space:pre-wrap;font-size:13px}
+
+/* right column: Gradio-style tabs */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);padding-left:1px}
+.tabs button{border:1px solid transparent;border-bottom:0;border-radius:var(--radius) var(--radius) 0 0;background:none;padding:6px 16px;color:var(--dim);font-weight:400;margin-bottom:-1px}
+.tabs button:hover{color:var(--text)}
+.tabs button.on{color:var(--text);font-weight:600;border-color:var(--border);background:var(--bg)}
+.panel{padding:12px;display:flex;flex-direction:column;gap:14px;border:1px solid var(--border);border-top:0;border-radius:0 0 var(--radius) var(--radius)}
+.form{background:var(--block);border:1px solid var(--border);border-radius:var(--radius)}
+.form>.field+.field{border-top:1px solid var(--border)}
+.form.cols2{display:grid;grid-template-columns:1fr 1fr}
+.form.cols2>.field+.field{border-top:0;border-left:1px solid var(--border)}
+.field{padding:12px;min-width:0}
+.lbl{display:block;font-weight:600;margin-bottom:8px}
+.hint{color:var(--dim);font-size:12px;margin:-4px 0 8px}
+.note{color:var(--dim);font-size:12px;margin-top:8px}
+.warn{color:#fca5a5;font-size:12px;margin-top:6px}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pills label{display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius);
+  background:linear-gradient(to bottom right,#111827,#1a2231);cursor:pointer;font-weight:600;box-shadow:0 1px 2px #0006}
+#performance label{min-width:140px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pills input[type=text]{width:74px;padding:3px 8px;text-align:center}
+.pills label.wide{grid-column:1/-1}
+.shead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.shead .lbl{margin:0}
+.shead input[type=number]{width:78px;padding:2px 6px;text-align:center}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row>label{display:flex;gap:8px;align-items:center;cursor:pointer;font-weight:600}
+details>summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"◀";font-size:12px}
+details[open]>summary::after{content:"▼"}
+details[open]>summary{margin-bottom:12px}
+#style-list{max-height:62vh;overflow:auto;margin-top:12px;padding-right:6px}
+#style-list label{font-weight:600;align-items:center}
+#style-preview{position:fixed;z-index:50;width:200px;height:200px;object-fit:cover;border-radius:var(--radius);border:1px solid var(--border2);pointer-events:none;box-shadow:0 8px 24px #000a;background:var(--block)}
+.lora{display:grid;grid-template-columns:52px 1fr 1fr}
+.lora>div{padding:10px 12px;min-width:0}
+.lora>div+div{border-left:1px solid var(--border)}
+.lora>.chk{display:flex;align-items:center;justify-content:center}
+.lora+.lora,.lora+.field{border-top:1px solid var(--border)}
+.lora .lbl{margin-bottom:6px}
+#refresh{background:none;border-color:transparent;font-size:15px}
+#refresh:hover{background:var(--block)}
+.linkbtn{background:none;border:0;padding:0;color:#60a5fa;font-weight:400;text-decoration:underline;font-size:12px}
+.linkbtn:hover{background:none;color:#93c5fd}
+
+/* input image panel */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.drop{position:relative;min-height:230px;border:1px dashed var(--border2);border-radius:var(--radius);background:var(--block);display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;overflow:hidden}
+.drop.tall{min-height:420px}
+.drop.over{border-color:var(--slider)}
+.drop .ph{font-size:15px;line-height:1.7;pointer-events:none}
+.drop .ph span{color:var(--dim)}
+.drop>img{max-width:100%;max-height:420px;display:block}
+.drop .x{position:absolute;top:6px;right:6px;width:26px;height:26px;padding:0;border-radius:50%;font-size:12px;z-index:2}
+.paint{position:relative;display:inline-block;line-height:0;touch-action:none;user-select:none}
+.paint img{max-width:100%;max-height:70vh;display:block}
+.paint canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.6;cursor:none}
+.ring{position:absolute;border:1.5px solid #fff;outline:1px solid #000;border-radius:50%;pointer-events:none}
+.tools button.on{border-color:var(--slider);box-shadow:0 0 0 1px var(--slider)}
+.tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.tools input[type=range]{margin:0;width:180px}
+#meta-box table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:10px}
+#meta-box td{border:1px solid var(--border);padding:4px 8px;vertical-align:top;word-break:break-word}
+#meta-box td:first-child{color:var(--dim);white-space:nowrap}
+@media (max-width:700px){.two{grid-template-columns:1fr}}
+
+/* history page */
+#history{max-width:1100px;margin:0 auto;padding:20px}
+#history h2{margin:0 0 12px}
+#history .hrow{display:flex;gap:16px;padding:14px;margin-bottom:12px}
+#history .hrow img{width:320px;max-width:40%;height:auto;align-self:flex-start;border-radius:6px}
+#history table{border-collapse:collapse;flex:1;font-size:13px;align-self:flex-start}
+#history td{border:1px solid var(--border);padding:5px 8px;vertical-align:top;word-break:break-word}
+#history td:first-child{color:var(--dim);white-space:nowrap;width:140px}
+
+@media (orientation:portrait),(max-width:900px){
+  #app{flex-direction:column;align-items:stretch;padding:10px}
+  #left{flex:none}
+  #right{flex:none;max-width:none;width:100%;min-width:0}
+  #viewer{height:50vh}
+  #prompt-row{flex-direction:column-reverse;gap:10px}
+  #prompt-row .area{flex:none}
+  #btns{flex-direction:row;width:100%}
+  #btns button{padding:9px 14px;font-size:15px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="left">
+    <div id="progress" class="block" hidden><div id="bar"><div id="bar-fill"></div><div id="bar-text"></div></div></div>
+    <div id="viewer" class="block"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+    <div id="thumbs" class="block"></div>
+    <div id="prompt-row">
+      <textarea id="prompt" placeholder="Type prompt here or paste parameters." autofocus></textarea>
+      <div id="btns">
+        <button id="generate">Generate</button>
+        <button id="skip" hidden>Skip</button>
+        <button id="stop" hidden>Stop</button>
+      </div>
+    </div>
+    <div id="under">
+      <label><input type="checkbox" id="input-image"> Input Image</label>
+      <label><input type="checkbox" id="advanced"> Advanced</label>
+      <div id="conn"><i></i><span></span></div>
+    </div>
+    <div id="input-panel" hidden>
+      <div class="tabs" id="itabs">
+        <button data-itab="uov">Upscale or Variation</button><button data-itab="inpaint">Inpaint or Outpaint</button><button data-itab="meta">Metadata</button>
+      </div>
+      <div class="panel" data-ipanel="uov"><div class="two">
+        <div class="drop" id="uov-drop"></div>
+        <div class="form">
+          <div class="field"><span class="lbl">Upscale or Variation:</span><div class="pills" id="uov-method"></div></div>
+          <div class="field"><span class="lbl">Upscaler</span><select id="upscaler"></select></div>
+        </div>
+      </div></div>
+      <div class="panel" data-ipanel="inpaint" hidden>
+        <div class="drop tall" id="inp-drop"></div>
+        <div class="tools" id="inp-tools" hidden>
+          <span>Brush size</span><input type="range" id="brush" min="4" max="200" value="40">
+          <button class="small on" id="tool-brush">Brush</button><button class="small" id="tool-eraser">Eraser</button>
+          <button class="small" id="inp-undo">Undo</button><button class="small" id="inp-clear">Clear mask</button>
+        </div>
+        <div class="form">
+          <div class="field"><div class="row"><label><input type="checkbox" id="inp-adv"> Enable Advanced Masking Features</label></div></div>
+          <div class="field"><span class="lbl">Method</span><select id="inp-method"></select></div>
+          <div class="field" id="inp-extra-box"><span class="lbl">Inpaint Additional Prompt</span><textarea id="inp-extra" rows="2" placeholder="Describe what you want to inpaint. Used instead of the main prompt."></textarea></div>
+          <div class="field" id="inp-engine-box"><div class="row"><label><input type="checkbox" id="inp-engine"> Use Fooocus Inpaint Engine (SDXL models only)</label></div></div>
+          <div class="field" id="inp-dirs-box"><span class="lbl">Outpaint Direction</span><div class="pills" id="inp-dirs"></div><div id="inp-pad" style="margin-top:14px"></div></div>
+          <div class="field advm" id="automask-box"><span class="lbl">Mask Generation</span><div class="row" style="flex-wrap:nowrap"><input type="text" id="mask-prompt" placeholder="What to mask, e.g. face, hair, background"><button class="small" id="mask-gen" style="white-space:nowrap">Generate mask</button></div></div>
+          <div class="field advm"><span class="lbl">Mask Upload</span><div class="drop" id="mask-drop" style="min-height:140px"></div></div>
+          <div class="field advm"><div class="row"><label><input type="checkbox" id="inp-invert"> Invert Mask When Generating</label></div></div>
+          <div class="field advm" id="inp-erode"></div>
+          <div class="field advm" id="inp-denoise"></div>
+          <div class="field advm" id="inp-field"></div>
+        </div>
+        <div class="note" id="inp-note" style="margin:0;white-space:pre-line" hidden></div>
+      </div>
+      <div class="panel" data-ipanel="meta" hidden><div class="two">
+        <div class="drop" id="meta-drop"></div>
+        <div class="form"><div class="field" id="meta-box"></div></div>
+      </div></div>
+    </div>
+    <div id="msg" class="block" hidden></div>
+  </div>
+
+  <div id="right">
+    <div id="tabs" class="tabs">
+      <button data-tab="setting">Settings</button><button data-tab="style">Styles</button>
+      <button data-tab="model">Models</button><button data-tab="adv">Advanced</button>
+    </div>
+
+    <div class="panel" data-panel="setting">
+      <div class="form">
+        <div class="field"><span class="lbl">Performance</span><div class="pills" id="performance"></div><div class="note" id="perf-hint" hidden></div></div>
+      </div>
+      <div class="form"><div class="field"><details><summary id="aspect-summary">Aspect Ratios</summary><div class="pills grid2" id="aspects"></div></details></div></div>
+      <div class="form">
+        <div class="field" id="image-number"></div>
+        <div class="field"><span class="lbl">Negative Prompt</span><div class="hint">Describing what you do not want to see.</div><textarea id="negative" rows="2" placeholder="Type prompt here."></textarea></div>
+        <div class="field"><div class="row"><label><input type="checkbox" id="random"> Random</label></div>
+          <div id="seed-box" style="margin-top:10px"><span class="lbl">Seed</span><input type="text" id="seed" inputmode="numeric"></div></div>
+      </div>
+      <div><a href="#history" id="history-link" target="_blank">📚 History Log</a></div>
+    </div>
+
+    <div class="panel" data-panel="style" hidden>
+      <div class="form"><div class="field">
+        <input type="search" id="style-search" placeholder="🔎 Type here to search styles ...">
+        <div id="style-list" class="pills grid2"></div>
+        <div class="note" id="style-note"></div>
+        <input type="file" id="style-file" accept=".json" multiple hidden>
+      </div></div>
+    </div>
+
+    <div class="panel" data-panel="model" hidden>
+      <div class="form cols2">
+        <div class="field"><span class="lbl">Base Model</span><select id="base-model"></select><div class="warn" id="base-warn" hidden></div></div>
+        <div class="field"><span class="lbl">Workflow</span><select id="workflow"></select></div>
+      </div>
+      <div class="form" id="loras"></div>
+      <div class="form" id="files"></div>
+      <div class="form" id="turbo-box"></div>
+      <input type="file" id="wf-file" accept=".json" hidden>
+      <button id="refresh">🔄 Refresh All Files</button>
+    </div>
+
+    <div class="panel" data-panel="adv" hidden>
+      <div class="form">
+        <div class="field" id="cfg"></div>
+        <div class="field"><span class="lbl">Sampler</span><select id="sampler"></select></div>
+        <div class="field"><span class="lbl">Scheduler</span><select id="scheduler"></select></div>
+        <div class="field" id="clip-skip"></div>
+      </div>
+      <div class="form"><div class="field"><span class="lbl">ComfyUI address</span><div class="row" style="flex-wrap:nowrap"><input type="text" id="server"><button class="small" id="connect">Connect</button></div></div></div>
+    </div>
+  </div>
+</div>
+<img id="style-preview" hidden alt="">
+
+<script>
+/*CORE-BEGIN*/
+// ---------- pure logic: workflow analysis and building (no DOM) ----------
+const FILE_RE = /\.(safetensors|sft|ckpt|pt|pth|gguf|bin)$/i;
+const TEXT_KEYS = ['text', 'text_g', 'text_l', 'prompt'];
+
+const TEMPLATES = {
+  'SDXL': {
+    "1": {class_type: "CheckpointLoaderSimple", inputs: {ckpt_name: "sd_xl_base_1.0.safetensors"}},
+    "2": {class_type: "CLIPTextEncode", inputs: {text: "", clip: ["1", 1]}},
+    "3": {class_type: "CLIPTextEncode", inputs: {text: "", clip: ["1", 1]}},
+    "4": {class_type: "EmptyLatentImage", inputs: {width: 1152, height: 896, batch_size: 1}},
+    "5": {class_type: "KSampler", inputs: {seed: 0, steps: 30, cfg: 4, sampler_name: "dpmpp_2m_sde_gpu", scheduler: "karras", denoise: 1,
+          model: ["1", 0], positive: ["2", 0], negative: ["3", 0], latent_image: ["4", 0]}},
+    "6": {class_type: "VAEDecode", inputs: {samples: ["5", 0], vae: ["1", 2]}},
+    "7": {class_type: "SaveImage", inputs: {filename_prefix: "Fooocus", images: ["6", 0]}}
+  },
+  'Anima': {
+    "1": {class_type: "UNETLoader", inputs: {unet_name: "anima-base-v1.0.safetensors", weight_dtype: "default"}},
+    "2": {class_type: "CLIPLoader", inputs: {clip_name: "qwen_3_06b_base.safetensors", type: "stable_diffusion", device: "default"}},
+    "3": {class_type: "VAELoader", inputs: {vae_name: "qwen_image_vae.safetensors"}},
+    "4": {class_type: "CLIPTextEncode", inputs: {text: "", clip: ["2", 0]}},
+    "5": {class_type: "CLIPTextEncode", inputs: {text: "", clip: ["2", 0]}},
+    "6": {class_type: "EmptySD3LatentImage", inputs: {width: 1024, height: 1024, batch_size: 1}},
+    "7": {class_type: "KSampler", inputs: {seed: 0, steps: 30, cfg: 4.5, sampler_name: "er_sde", scheduler: "simple", denoise: 1,
+          model: ["1", 0], positive: ["4", 0], negative: ["5", 0], latent_image: ["6", 0]}},
+    "8": {class_type: "VAEDecode", inputs: {samples: ["7", 0], vae: ["3", 0]}},
+    "9": {class_type: "SaveImage", inputs: {filename_prefix: "Fooocus", images: ["8", 0]}}
+  }
+};
+
+const isLink = v => Array.isArray(v) && v.length === 2 && (typeof v[0] === 'string' || typeof v[0] === 'number') && typeof v[1] === 'number';
+const sameLink = (a, b) => isLink(a) && isLink(b) && String(a[0]) === String(b[0]) && a[1] === b[1];
+
+// Follow a link upstream through the inputs listed in `via` until `test(node)` passes.
+function trace(wf, link, via, test) {
+  const seen = new Set();
+  while (isLink(link)) {
+    const id = String(link[0]);
+    if (seen.has(id) || !wf[id]) return null;
+    seen.add(id);
+    const n = wf[id];
+    if (test(n)) return id;
+    link = null;
+    for (const k of via) if (n.inputs && isLink(n.inputs[k])) { link = n.inputs[k]; break; }
+  }
+  return null;
+}
+// Follow `key` links upstream to the node where the chain starts (the loader).
+function rootOf(wf, link, key) {
+  let cur = null; const seen = new Set();
+  while (isLink(link) && wf[String(link[0])] && !seen.has(String(link[0]))) {
+    cur = {id: String(link[0]), slot: link[1]};
+    seen.add(cur.id);
+    link = wf[cur.id].inputs ? wf[cur.id].inputs[key] : null;
+  }
+  return cur;
+}
+
+function analyze(wf) {
+  if (!wf || typeof wf !== 'object') throw new Error('Not a workflow.');
+  if (Array.isArray(wf.nodes)) throw new Error('This is the regular workflow format. In ComfyUI use Workflow → Export (API) and import that file.');
+  const ids = Object.keys(wf).filter(i => wf[i] && wf[i].class_type && wf[i].inputs);
+  const isLatentSrc = n => n.inputs && 'width' in n.inputs && 'height' in n.inputs;
+  const LV = ['latent', 'latent_image', 'samples'];
+  const samplers = ids.filter(i => /^KSampler(Advanced)?$/.test(wf[i].class_type));
+  const samplerId = samplers.find(i => trace(wf, wf[i].inputs.latent_image, LV, isLatentSrc)) || samplers[0];
+  if (!samplerId) throw new Error('No KSampler node found in this workflow.');
+  const s = wf[samplerId].inputs;
+  const isText = n => n.inputs && TEXT_KEYS.some(k => k in n.inputs);
+  const posId = trace(wf, s.positive, ['conditioning', 'positive', 'conditioning_1', 'conditioning_to'], isText);
+  let negId = trace(wf, s.negative, ['conditioning', 'negative', 'conditioning_1', 'conditioning_to'], isText);
+  if (negId === posId) negId = null;
+  const modelRoot = rootOf(wf, s.model, 'model');
+  const clipRoot = posId && isLink(wf[posId].inputs.clip) ? rootOf(wf, wf[posId].inputs.clip, 'clip') : null;
+  const fileFields = [];
+  let mainSet = false;
+  for (const id of ids) for (const [field, v] of Object.entries(wf[id].inputs)) {
+    if (typeof v !== 'string' || !FILE_RE.test(v)) continue;
+    const main = !mainSet && modelRoot && id === modelRoot.id;
+    if (main) mainSet = true;
+    fileFields.push({id, field, cls: wf[id].class_type, main});
+  }
+  fileFields.sort((a, b) => (b.main ? 1 : 0) - (a.main ? 1 : 0));
+  const decodeId = ids.find(i => isLink(wf[i].inputs.samples) && String(wf[i].inputs.samples[0]) === samplerId && isLink(wf[i].inputs.vae)) || null;
+  return {
+    samplerId, seedKey: 'seed' in s ? 'seed' : 'noise_seed', posId, negId,
+    latentId: trace(wf, s.latent_image, LV, isLatentSrc),
+    modelRoot, clipRoot, fileFields, decodeId, vae: decodeId ? wf[decodeId].inputs.vae : null,
+    saveIds: ids.filter(i => 'filename_prefix' in wf[i].inputs)
+  };
+}
+
+function buildPrompt(wf, a, p) {
+  const out = JSON.parse(JSON.stringify(wf));
+  const setText = (id, t) => { for (const k of TEXT_KEYS) if (k in out[id].inputs) out[id].inputs[k] = t; };
+  if (a.posId) setText(a.posId, p.positive);
+  if (a.negId) setText(a.negId, p.negative);
+  if (a.latentId) {
+    const l = out[a.latentId].inputs;
+    l.width = p.width; l.height = p.height;
+    if ('batch_size' in l) l.batch_size = 1;
+  }
+  const s = out[a.samplerId].inputs;
+  s[a.seedKey] = p.seed; s.steps = p.steps; s.cfg = p.cfg;
+  if (p.sampler) s.sampler_name = p.sampler;
+  if (p.scheduler) s.scheduler = p.scheduler;
+  for (const [key, v] of Object.entries(p.files || {})) {
+    const dot = key.indexOf('.'), id = key.slice(0, dot), field = key.slice(dot + 1);
+    if (out[id] && out[id].inputs && field in out[id].inputs && v) out[id].inputs[field] = v;
+  }
+  for (const id of a.saveIds) out[id].inputs.filename_prefix = p.prefix || 'Fooocus';
+  let next = Math.max(0, ...Object.keys(out).map(Number).filter(Number.isFinite)) + 1;
+  const add = (cls, inputs) => { const id = String(next++); out[id] = {class_type: cls, inputs: withDefaults(p.info, cls, inputs)}; return id; };
+  const cur = a.posId ? out[a.posId].inputs.clip : null;
+  if (p.clipSkip && isLink(cur)) {                    // CLIP skip: one node in front of every text encoder
+    const cs = add('CLIPSetLastLayer', {clip: cur, stop_at_clip_layer: -p.clipSkip});
+    for (const [id, n] of Object.entries(out)) if (id !== cs) for (const [k, v] of Object.entries(n.inputs || {})) if (sameLink(v, cur)) n.inputs[k] = [cs, 0];
+  }
+  let vae = a.vae;                                    // optional separate VAE instead of the one inside the checkpoint
+  if (p.vae && a.vae) {
+    vae = [add('VAELoader', {vae_name: p.vae}), 0];
+    for (const n of Object.values(out)) for (const [k, v] of Object.entries(n.inputs || {})) if (sameLink(v, a.vae)) n.inputs[k] = vae;
+  }
+  const loras = p.loras || [];
+  if (loras.length && a.modelRoot) {
+    const m0 = [a.modelRoot.id, a.modelRoot.slot], c0 = a.clipRoot ? [a.clipRoot.id, a.clipRoot.slot] : null;
+    let m = m0, c = c0; const added = new Set();
+    for (const l of loras) {
+      const id = c
+        ? add('LoraLoader', {lora_name: l.name, strength_model: l.weight, strength_clip: l.weight, model: m, clip: c})
+        : add('LoraLoaderModelOnly', {lora_name: l.name, strength_model: l.weight, model: m});
+      m = [id, 0]; if (c) c = [id, 1];
+      added.add(id);
+    }
+    for (const [id, n] of Object.entries(out)) {
+      if (added.has(id) || !n.inputs) continue;
+      for (const [k, v] of Object.entries(n.inputs)) {
+        if (sameLink(v, m0)) n.inputs[k] = m;
+        else if (c0 && sameLink(v, c0)) n.inputs[k] = c;
+      }
+    }
+  }
+  // Image input modes: vary / upscale (img2img) and inpaint (crop -> sample masked area -> paste back).
+  const m = p.i2i;
+  if (m) {
+    if (!a.vae || !a.decodeId) throw new Error('This workflow has no VAE Decode right after the sampler, which the image input modes need.');
+    const scale = (img, w, h) => add('ImageScale', {image: img, upscale_method: 'lanczos', width: w, height: h, crop: 'disabled'});
+    const li = add('LoadImage', {image: m.image});
+    if (m.kind === 'inpaint') {
+      const c = m.crop, lm = add('LoadImage', {image: m.mask});
+      const ci = add('ImageCrop', {image: [li, 0], width: c.w, height: c.h, x: c.x, y: c.y});
+      const cm = add('ImageCrop', {image: [lm, 0], width: c.w, height: c.h, x: c.x, y: c.y});
+      const hard = add('ImageToMask', {image: [scale([cm, 0], m.work.w, m.work.h), 0], channel: 'red'});
+      const soft = add('ImageToMask', {image: [cm, 0], channel: 'green'});
+      const enc = add('VAEEncode', {pixels: [scale([ci, 0], m.work.w, m.work.h), 0], vae});
+      s.latent_image = [add('SetLatentNoiseMask', {samples: [enc, 0], mask: [hard, 0]}), 0];
+      // grey mask values become per-pixel denoising strength (soft transition into the original)
+      if (m.differential) s.model = [add('DifferentialDiffusion', {model: s.model}), 0];
+      // optional Fooocus inpaint patch (ComfyUI Inpaint Nodes extension)
+      if (m.engine) s.model = [add('INPAINT_ApplyFooocusInpaint', {model: s.model,
+        patch: [add('INPAINT_LoadFooocusInpaint', {head: m.engine.head, patch: m.engine.patch}), 0], latent: s.latent_image}), 0];
+      const back = scale([a.decodeId, 0], c.w, c.h);
+      const comp = add('ImageCompositeMasked', {destination: [li, 0], source: [back, 0], x: c.x, y: c.y, resize_source: false, mask: [soft, 0]});
+      for (const [id, n] of Object.entries(out)) {
+        if (id === back) continue;
+        for (const [k, v] of Object.entries(n.inputs || {})) if (sameLink(v, [a.decodeId, 0])) n.inputs[k] = [comp, 0];
+      }
+    } else {
+      let src = [li, 0];
+      if (m.upscaler) src = [add('ImageUpscaleWithModel', {upscale_model: [add('UpscaleModelLoader', {model_name: m.upscaler}), 0], image: src}), 0];
+      s.latent_image = [add('VAEEncode', {pixels: [scale(src, m.width, m.height), 0], vae}), 0];
+    }
+    if ('denoise' in s) s.denoise = m.denoise;
+    else s.start_at_step = Math.round(p.steps * (1 - m.denoise));
+  }
+  return out;
+}
+
+// "Upscale (Fast 2x)": no sampling, just the upscale model and a resize.
+function buildFastUpscale(info, m) {
+  const g = {}; let next = 1;
+  const add = (cls, inputs) => { const id = String(next++); g[id] = {class_type: cls, inputs: withDefaults(info, cls, inputs)}; return id; };
+  let src = [add('LoadImage', {image: m.image}), 0];
+  if (m.upscaler) src = [add('ImageUpscaleWithModel', {upscale_model: [add('UpscaleModelLoader', {model_name: m.upscaler}), 0], image: src}), 0];
+  const sc = add('ImageScale', {image: src, upscale_method: 'lanczos', width: m.width, height: m.height, crop: 'disabled'});
+  add('SaveImage', {filename_prefix: 'Fooocus', images: [sc, 0]});
+  return g;
+}
+
+// Fill required inputs the caller did not set, using the defaults the server reports for the node.
+function withDefaults(info, cls, inputs) {
+  const req = info && info[cls] && info[cls].input && info[cls].input.required;
+  if (!req) return inputs;
+  for (const [k, spec] of Object.entries(req)) {
+    if (k in inputs || !Array.isArray(spec)) continue;
+    const o = spec[1] || {};
+    if (Array.isArray(spec[0])) { if (spec[0].length) inputs[k] = 'default' in o ? o.default : spec[0][0]; }
+    else if ('default' in o) inputs[k] = o.default;
+    else if (spec[0] === 'COMBO' && o.options && o.options.length) inputs[k] = o.options[0];
+  }
+  return inputs;
+}
+
+function applyStyles(prompt, negative, styles) {
+  let pos = (prompt || '').trim();
+  const neg = [(negative || '').trim()];
+  for (const st of styles) {
+    const t = (st.prompt || '').trim();
+    if (t) pos = t.includes('{prompt}') ? t.replace('{prompt}', pos) : (pos ? pos + ', ' + t : t);
+    if (st.negative_prompt) neg.push(st.negative_prompt.trim());
+  }
+  return {positive: pos, negative: neg.filter(Boolean).join(', ')};
+}
+
+// Same display-name rule as Fooocus ("sai-3d-model" -> "SAI 3D Model").
+function normalizeStyleName(k) {
+  return String(k).replace(/-/g, ' ').split(' ').map(w => w.slice(0, 1).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+    .replace(/3d/g, '3D').replace(/Sai/g, 'SAI').replace(/Mre/g, 'MRE').replace(/\(s/g, '(S');
+}
+
+function comboOptions(info, cls, field) {
+  const n = info && info[cls];
+  const spec = n && n.input && ((n.input.required && n.input.required[field]) || (n.input.optional && n.input.optional[field]));
+  if (!spec) return null;
+  if (Array.isArray(spec[0])) return spec[0];
+  if (spec[0] === 'COMBO') return (spec[1] && spec[1].options) || [];
+  return null;
+}
+
+function pickOption(opts, want) {
+  const base = s => String(s).split(/[\\/]/).pop().toLowerCase();
+  const w = base(want), stem = w.replace(/\.[^.]+$/, '');
+  return opts.find(o => base(o) === w) || opts.find(o => base(o).includes(stem)) || opts[0];
+}
+
+// Binary websocket frame -> image Blob (ComfyUI live previews).
+function parsePreview(buf) {
+  if (buf.byteLength < 8) return null;
+  const dv = new DataView(buf), type = dv.getUint32(0);
+  if (type === 1) return new Blob([buf.slice(8)], {type: dv.getUint32(4) === 2 ? 'image/png' : 'image/jpeg'});
+  if (type === 4) {
+    const len = dv.getUint32(4);
+    let mime = 'image/jpeg';
+    try { mime = JSON.parse(new TextDecoder().decode(buf.slice(8, 8 + len))).image_type || mime; } catch (e) {}
+    return new Blob([buf.slice(8 + len)], {type: mime});
+  }
+  return null;
+}
+
+// ---------- image metadata ----------
+function parsePngText(buf) {
+  const u = new Uint8Array(buf), out = {};
+  if (u.length < 16 || u[0] !== 0x89 || u[1] !== 0x50 || u[2] !== 0x4e || u[3] !== 0x47) return out;
+  const dv = new DataView(buf), utf = new TextDecoder('utf-8'), lat = new TextDecoder('latin1');
+  let p = 8;
+  while (p + 12 <= u.length) {
+    const len = dv.getUint32(p), type = lat.decode(u.subarray(p + 4, p + 8)), d = u.subarray(p + 8, p + 8 + len);
+    if (type === 'IEND') break;
+    const z = d.indexOf(0);
+    if (type === 'tEXt' && z > 0) out[lat.decode(d.subarray(0, z))] = lat.decode(d.subarray(z + 1));
+    else if (type === 'iTXt' && z > 0 && d[z + 1] === 0) {
+      let q = d.indexOf(0, z + 3) + 1; q = d.indexOf(0, q) + 1;
+      out[lat.decode(d.subarray(0, z))] = utf.decode(d.subarray(q));
+    }
+    p += 12 + len;
+  }
+  return out;
+}
+const cleanMeta = m => Object.fromEntries(Object.entries(m).filter(([, v]) => v != null && v !== ''));
+function metaFromGraph(wf) {
+  const a = analyze(wf), s = wf[a.samplerId].inputs;
+  const txt = id => id ? TEXT_KEYS.map(k => wf[id].inputs[k]).find(v => typeof v === 'string') || '' : '';
+  const main = a.fileFields.find(f => f.main);
+  return cleanMeta({
+    'Prompt': txt(a.posId), 'Negative Prompt': txt(a.negId), 'Steps': s.steps,
+    'Resolution': a.latentId && typeof wf[a.latentId].inputs.width === 'number' ? `${wf[a.latentId].inputs.width}×${wf[a.latentId].inputs.height}` : '',
+    'Guidance Scale': s.cfg, 'Sampler': s.sampler_name, 'Scheduler': s.scheduler,
+    'Seed': typeof s[a.seedKey] === 'number' ? String(s[a.seedKey]) : '', 'Base Model': main ? wf[main.id].inputs[main.field] : ''
+  });
+}
+function metaFromFooocus(d) {
+  let st = d.styles;
+  if (typeof st === 'string') st = (st.match(/'[^']*'|"[^"]*"/g) || []).map(x => x.slice(1, -1));
+  const res = String(d.resolution || '').match(/(\d+)\D+(\d+)/);
+  return cleanMeta({
+    'Prompt': d.prompt, 'Negative Prompt': d.negative_prompt, 'Styles': Array.isArray(st) ? st.join(', ') : '',
+    'Performance': d.performance, 'Steps': d.steps, 'Resolution': res ? `${res[1]}×${res[2]}` : '',
+    'Guidance Scale': d.guidance_scale, 'Sampler': d.sampler, 'Scheduler': d.scheduler,
+    'Seed': d.seed != null ? String(d.seed) : '', 'Base Model': d.base_model
+  });
+}
+function parseA1111(text) {
+  const lines = String(text).trim().split('\n'), params = {};
+  if (/(^|, )Steps: /.test(lines[lines.length - 1]))
+    for (const m of lines.pop().matchAll(/([\w ]+): ("[^"]*"|[^,]+)(?:, |$)/g)) params[m[1].trim()] = m[2].trim();
+  const ni = lines.findIndex(l => l.startsWith('Negative prompt:'));
+  return cleanMeta({
+    'Prompt': lines.slice(0, ni < 0 ? lines.length : ni).join('\n'),
+    'Negative Prompt': ni < 0 ? '' : lines.slice(ni).join('\n').replace(/^Negative prompt:\s*/, ''),
+    'Steps': params['Steps'], 'Resolution': (params['Size'] || '').replace('x', '×'), 'Guidance Scale': params['CFG scale'],
+    'Sampler': params['Sampler'], 'Seed': params['Seed'], 'Base Model': params['Model']
+  });
+}
+function metaFromChunks(ch) {
+  const j = t => { try { return JSON.parse(t); } catch (e) { return null; } };
+  if (ch.fooocus) { const m = j(ch.fooocus); if (m && typeof m === 'object') return m; }
+  if (ch.prompt) { const g = j(ch.prompt); if (g) try { return metaFromGraph(g); } catch (e) {} }
+  if (ch.parameters) { const d = j(ch.parameters); return d && typeof d === 'object' ? metaFromFooocus(d) : parseA1111(ch.parameters); }
+  return null;
+}
+
+// Inpaint region: mask bounding box plus context, grown towards the whole image by `field` (0..1).
+function inpaintRegion(bx0, by0, bx1, by1, W, H, field) {
+  const pad = Math.max(32, 0.15 * Math.max(bx1 - bx0, by1 - by0));
+  let x0 = Math.max(0, bx0 - pad), y0 = Math.max(0, by0 - pad), x1 = Math.min(W, bx1 + pad), y1 = Math.min(H, by1 + pad);
+  x0 *= 1 - field; y0 *= 1 - field; x1 += (W - x1) * field; y1 += (H - y1) * field;
+  x0 = Math.floor(x0); y0 = Math.floor(y0); x1 = Math.ceil(x1); y1 = Math.ceil(y1);
+  const w = x1 - x0, h = y1 - y0, k = Math.sqrt(1024 * 1024 / (w * h)), r16 = v => Math.max(256, Math.round(v / 16) * 16);
+  return {crop: {x: x0, y: y0, w, h}, work: {w: r16(w * k), h: r16(h * k)}};
+}
+/*CORE-END*/
+
+// ---------- constants ----------
+const PERF = {
+  'Quality': {steps: 60}, 'Speed': {steps: 30},
+  'Extreme Speed': {steps: 8, cfg: 1}, 'Lightning': {steps: 4, cfg: 1}
+};
+const CUSTOM = 'Custom';
+const TURBO_MODES = ['Extreme Speed', 'Lightning'];   // performance modes that add the Turbo LoRA
+const ASPECTS = ['704×1408','704×1344','768×1344','768×1280','832×1216','832×1152','896×1152','896×1088','960×1088','960×1024','1024×1024','1024×960','1088×960','1088×896','1152×896','1152×832','1216×832','1280×768','1344×768','1344×704','1408×704','1472×704','1536×640','1600×640','1664×576','1728×576'];
+const FOOOCUS_RAW = 'https://raw.githubusercontent.com/lllyasviel/Fooocus/main/sdxl_styles/';
+const STYLE_FILES = ['fooocus', 'sai', 'mre', 'twri', 'diva', 'marc_k3nt3l'].map(n => `sdxl_styles_${n}.json`);
+const RANDOM_STYLE = 'Random Style';
+const UOV = ['Disabled', 'Vary (Subtle)', 'Vary (Strong)', 'Upscale (1.5x)', 'Upscale (2x)', 'Upscale (Fast 2x)'];
+const NO_UPSCALER = 'None (Lanczos resize)';
+const INPAINT_METHODS = {       // label, denoising strength, respective field
+  default: ['Inpaint or Outpaint (default)', 1, 0.618],
+  detail: ['Improve Detail (face, hand, eyes, etc.)', 0.5, 0],
+  modify: ['Modify Content (add objects, change background, etc.)', 1, 0]
+};
+const TAGGERS = ['WD14Tagger|pysssss'];   // caption nodes Describe can use (not part of vanilla ComfyUI)
+// Offline fallback only: an approximate subset, used until the original Fooocus styles are fetched.
+const NEG_Q = 'worst quality, low quality, lowres, jpeg artifacts, blurry, out of focus, watermark, signature, text, logo, cropped, deformed, bad anatomy, bad hands, extra fingers, ugly';
+const FALLBACK_STYLES = [
+  {name: 'Fooocus Enhance', prompt: '{prompt}', negative_prompt: NEG_Q + ', oversaturated, underexposed, overexposed, grainy, duplicate, mutated, poorly lit'},
+  {name: 'Fooocus Sharp', prompt: 'cinematic still {prompt}, emotional, harmonious, vignette, highly detailed, high budget, bokeh, cinemascope, moody, epic, gorgeous, film grain', negative_prompt: 'anime, cartoon, graphic, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured, blurry'},
+  {name: 'Fooocus Masterpiece', prompt: '(masterpiece), (best quality), (ultra-detailed), {prompt}, illustration, extremely detailed, original, colorful, highres, perfect lighting', negative_prompt: 'longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality'},
+  {name: 'Fooocus Photograph', prompt: 'photograph {prompt}, 50mm, cinematic 4k epic detailed photograph, 35mm photo, sharp focus, high budget, hyper detailed', negative_prompt: 'bokeh, depth of field, blurry, cropped, drawing, painting, cartoon, 3d render, low contrast, noisy, deformed, dull'},
+  {name: 'Fooocus Cinematic', prompt: 'cinematic still {prompt}, shallow depth of field, vignette, highly detailed, high budget, bokeh, cinemascope, moody, epic, film grain', negative_prompt: 'anime, cartoon, graphic, text, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured'},
+  {name: 'Fooocus Negative', prompt: '{prompt}', negative_prompt: 'deformed, bad anatomy, disfigured, poorly drawn face, mutated, extra limb, poorly drawn hands, missing limb, floating limbs, long neck, extra fingers, ' + NEG_Q},
+  {name: 'SAI Anime', prompt: 'anime artwork {prompt}, anime style, key visual, vibrant, studio anime, highly detailed', negative_prompt: 'photo, deformed, black and white, realism, disfigured, low contrast'},
+  {name: 'SAI Photographic', prompt: 'cinematic photo {prompt}, 35mm photograph, film, bokeh, professional, 4k, highly detailed', negative_prompt: 'drawing, painting, crayon, sketch, graphite, impressionist, noisy, blurry, soft, deformed, ugly'},
+  {name: 'SAI Digital Art', prompt: 'concept art {prompt}, digital artwork, illustrative, painterly, matte painting, highly detailed', negative_prompt: 'photo, photorealistic, realism, ugly'},
+  {name: 'SAI Fantasy Art', prompt: 'ethereal fantasy concept art of {prompt}, magnificent, celestial, painterly, epic, majestic, magical, fantasy art, dreamy', negative_prompt: 'photographic, realistic, realism, 35mm film, dslr, cropped, frame, text, deformed, glitch, noise, noisy, ugly'},
+  {name: 'SAI Cinematic', prompt: 'cinematic film still {prompt}, shallow depth of field, vignette, highly detailed, high budget, bokeh, cinemascope, moody, epic, film grain', negative_prompt: 'anime, cartoon, graphic, text, painting, crayon, graphite, abstract, glitch, deformed, mutated, ugly, disfigured'},
+  {name: 'SAI 3D Model', prompt: 'professional 3d model {prompt}, octane render, highly detailed, volumetric, dramatic lighting', negative_prompt: 'ugly, deformed, noisy, low poly, blurry, painting'},
+  {name: 'SAI Pixel Art', prompt: 'pixel-art {prompt}, low-res, blocky, pixel art style, 8-bit graphics', negative_prompt: 'sloppy, messy, blurry, noisy, highly detailed, ultra textured, photo, realistic'},
+  {name: 'SAI Line Art', prompt: 'line art drawing {prompt}, professional, sleek, modern, minimalist, graphic, line art, vector graphics', negative_prompt: 'anime, photorealistic, 35mm film, deformed, glitch, blurry, noisy, bad anatomy, ugly, disfigured, realism, oil, acrylic'}
+];
+
+// ---------- state ----------
+const LS_KEY = 'fooocus-comfy-v1', LOG_KEY = 'fooocus-comfy-log', STYLES_KEY = 'fooocus-comfy-styles';
+const $ = s => document.querySelector(s);
+function lsGet(key, def) { try { const v = JSON.parse(localStorage.getItem(key)); return v == null ? def : v; } catch (e) { return def; } }
+function lsSet(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); return true; } catch (e) { return false; } }
+const state = Object.assign({
+  server: location.protocol.startsWith('http') ? location.origin : 'http://127.0.0.1:8188',
+  prompt: '', negative: '', performance: 'Speed', aspect: '1152×896', imageNumber: 2, random: true, seed: '0',
+  customSteps: 30, customW: 1024, customH: 1024, advanced: true, tab: 'setting', workflow: 'SDXL', customWfs: {}, perWf: {}, userStyles: [],
+  inputImage: false, itab: 'uov', uov: 'Disabled', upscaler: null,
+  inpaint: {advanced: false, method: 'default', extra: '', dirs: [], invert: false, erode: 0, denoise: 1, field: 0.618}
+}, lsGet(LS_KEY, {}));
+if (state.performance !== CUSTOM && !PERF[state.performance]) state.performance = 'Speed';
+if (state.aspect !== CUSTOM && !ASPECTS.includes(state.aspect)) state.aspect = '1152×896';
+const clampInt = (v, lo, hi, def) => { v = Math.round(Number(v)); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def; };
+const currentPerf = () => state.performance === CUSTOM ? {steps: clampInt(state.customSteps, 1, 200, 30)} : PERF[state.performance];
+const currentSize = () => state.aspect === CUSTOM
+  ? [clampInt(state.customW / 8, 8, 1024, 128) * 8, clampInt(state.customH / 8, 8, 1024, 128) * 8]
+  : state.aspect.split('×').map(Number);
+let saveTimer = 0;
+function save() { clearTimeout(saveTimer); saveTimer = setTimeout(() => lsSet(LS_KEY, state), 200); }
+
+function currentWf() {
+  const wf = TEMPLATES[state.workflow] || state.customWfs[state.workflow];
+  if (wf) return wf;
+  state.workflow = 'SDXL';
+  return TEMPLATES.SDXL;
+}
+function wfState() {
+  const wf = currentWf(), name = state.workflow;
+  if (!state.perWf[name]) {
+    const s = wf[analyze(wf).samplerId].inputs;
+    state.perWf[name] = {
+      cfg: typeof s.cfg === 'number' ? s.cfg : 4,
+      sampler: typeof s.sampler_name === 'string' ? s.sampler_name : 'euler',
+      scheduler: typeof s.scheduler === 'string' ? s.scheduler : 'normal',
+      files: {}, styles: [],
+      loras: Array.from({length: 5}, () => ({on: true, name: 'None', weight: 1}))
+    };
+  }
+  return state.perWf[name];
+}
+
+// ---------- styles ----------
+let fooocusStyles = lsGet(STYLES_KEY, null);   // original Fooocus set, cached after the first fetch
+let stylesStatus = '';
+let serverStyles = null;                       // styles/*.json served by the fooocus-ui folder in ComfyUI, when it is installed
+async function fetchServerStyles() {
+  try {
+    const r = await fetch(base() + '/fooocus/styles.json');
+    if (!r.ok) return;
+    const arr = await r.json(), out = [], seen = new Set();
+    for (const st of Array.isArray(arr) ? arr : []) {
+      if (!st || !st.name) continue;
+      const name = normalizeStyleName(st.name);
+      if (seen.has(name)) continue;
+      seen.add(name);
+      out.push({name, prompt: st.prompt || '', negative_prompt: st.negative_prompt || ''});
+    }
+    if (out.length) { serverStyles = out; renderStyleTab(); }
+  } catch (e) {}
+}
+function realStyles() {
+  const names = new Set(state.userStyles.map(s => s.name));
+  return (serverStyles || fooocusStyles || FALLBACK_STYLES).filter(s => !names.has(s.name)).concat(state.userStyles);
+}
+function allStyles() { return [{name: RANDOM_STYLE, special: true}, ...realStyles()]; }
+async function fetchFooocusStyles() {
+  stylesStatus = 'Loading original Fooocus styles …'; renderStyleNote();
+  try {
+    const out = [], seen = new Set();
+    for (const f of STYLE_FILES) {
+      const r = await fetch(FOOOCUS_RAW + f);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      for (const s of await r.json()) {
+        const name = normalizeStyleName(s.name);
+        if (seen.has(name)) continue;
+        seen.add(name);
+        out.push({name, prompt: s.prompt || '', negative_prompt: s.negative_prompt || ''});
+      }
+    }
+    fooocusStyles = out; lsSet(STYLES_KEY, out); stylesStatus = '';
+  } catch (e) {
+    stylesStatus = 'Could not download the original Fooocus styles from GitHub (' + e.message + ').';
+  }
+  renderStyleTab();
+}
+
+// ---------- small DOM helpers ----------
+function el(tag, props, ...kids) {
+  const e = Object.assign(document.createElement(tag), props || {});
+  for (const k of kids) e.append(k);
+  return e;
+}
+function fillSelect(sel, options, value, label) {
+  sel.innerHTML = '';
+  const list = options.includes(value) || value == null ? options : [value, ...options];
+  for (const o of list) sel.append(el('option', {value: o, textContent: label ? label(o) : o}));
+  if (value != null) sel.value = value;
+  sel.title = sel.value;
+}
+// Gradio-style slider: label and number on one line, range below.
+function sliderField(box, label, min, max, step, value, onChange, hint) {
+  const r = el('input', {type: 'range', min, max, step, value});
+  const n = el('input', {type: 'number', min, max, step, value});
+  const set = (v, from) => {
+    v = Math.min(max, Math.max(min, Number(v)));
+    if (!Number.isFinite(v)) return;
+    if (from !== r) r.value = v;
+    if (from !== n) n.value = v;
+    onChange(v);
+  };
+  r.oninput = () => set(r.value, r);
+  n.onchange = () => set(n.value, null);
+  box.innerHTML = '';
+  box.append(el('div', {className: 'shead'}, el('span', {className: 'lbl', textContent: label}), n));
+  if (hint) box.append(el('div', {className: 'hint', textContent: hint, style: 'margin:4px 0 0'}));
+  box.append(r);
+}
+// Text areas grow and shrink with their text; a size set by hand (desktop corner, touch grip below the box) is kept as the minimum.
+const AREAS = '#prompt, #negative, #inp-extra';
+function fitArea(t) {
+  if (!t.offsetParent) return;
+  if (t._h && Math.abs(t.offsetHeight - t._h) > 2) t._manual = t.offsetHeight;     // resized with the native corner
+  t.style.height = 'auto';
+  t.style.height = Math.max(t._manual || 0, Math.min(t.scrollHeight + 2, innerHeight * 0.5)) + 'px';
+  t._h = t.offsetHeight;
+}
+function growAll() { document.querySelectorAll(AREAS).forEach(fitArea); }
+function setupAreas() {
+  for (const t of document.querySelectorAll(AREAS)) {
+    const wrap = el('div', {className: 'area'}), grip = el('div', {className: 'grip'});
+    t.replaceWith(wrap); wrap.append(t, grip);
+    let y0 = null, h0 = 0;
+    grip.onpointerdown = e => { try { grip.setPointerCapture(e.pointerId); } catch (err) {} y0 = e.clientY; h0 = t.offsetHeight; };
+    grip.onpointermove = e => { if (y0 === null) return; t._manual = Math.max(44, h0 + e.clientY - y0); t.style.height = t._manual + 'px'; t._h = t.offsetHeight; };
+    grip.onpointerup = grip.onpointercancel = () => { y0 = null; };
+    t.addEventListener('input', () => fitArea(t));
+  }
+  growAll();
+}
+function showMsg(text) { const m = $('#msg'); m.hidden = !text; m.textContent = text || ''; }
+
+// ---------- ComfyUI connection ----------
+const clientId = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).replace(/-/g, '');
+let info = null, ws = null, wsReady = null;
+const base = () => state.server.trim().replace(/\/+$/, '');
+const viewUrl = (server, im) => `${server}/view?filename=${encodeURIComponent(im.filename)}&subfolder=${encodeURIComponent(im.subfolder || '')}&type=${encodeURIComponent(im.type || 'output')}`;
+
+async function api(path, body) {
+  const r = await fetch(base() + path, body === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  const text = await r.text();
+  let data = null; try { data = text ? JSON.parse(text) : null; } catch (e) {}
+  if (!r.ok) { const err = new Error('HTTP ' + r.status); err.data = data; throw err; }
+  return data;
+}
+function setConn(cls, text) { const c = $('#conn'); c.className = cls; c.querySelector('span').textContent = text; }
+
+// First start: look for ComfyUI where the page came from, on the same host at :8188, then on this machine.
+async function findServer() {
+  const c = [location.protocol.startsWith('http') ? location.origin : null,
+    location.hostname ? `${location.protocol.startsWith('http') ? location.protocol : 'http:'}//${location.hostname}:8188` : null, 'http://127.0.0.1:8188'];
+  for (const u of [...new Set(c.filter(Boolean))]) {
+    try {
+      const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 2500);
+      const r = await fetch(u + '/system_stats', {signal: ctl.signal});
+      clearTimeout(t);
+      if (r.ok && (await r.json()).system) return u;
+    } catch (e) {}
+  }
+  return null;
+}
+async function connect() {
+  setConn('', 'Connecting to ' + base() + ' …');
+  try {
+    info = await api('/object_info');
+    showMsg('');
+  } catch (e) {
+    info = null;
+    setConn('bad', 'Not connected');
+    showMsg('Cannot reach ComfyUI at ' + base() + '.\n\n' +
+      '1. Advanced tab → ComfyUI address: it must be the computer that runs ComfyUI, for example http://192.168.1.10:8188 when opened from a phone (not localhost). Then press Connect.\n' +
+      '2. ComfyUI must be started with  --enable-cors-header  and, to be reachable from other devices,  --listen .\n' +
+      'Both steps are unnecessary when this page is opened from ComfyUI itself (see the fooocus-ui folder for custom_nodes).');
+    renderModelTab(); renderAdvTab();
+    return false;
+  }
+  renderModelTab(); renderAdvTab(); renderInputPanel();
+  openWS();
+  await fetchServerStyles();
+  return true;
+}
+function openWS() {
+  if (ws) { ws.onclose = null; try { ws.close(); } catch (e) {} }
+  const sock = new WebSocket(base().replace(/^http/, 'ws') + '/ws?clientId=' + clientId);
+  ws = sock;
+  sock.binaryType = 'arraybuffer';
+  wsReady = new Promise(res => {
+    sock.onopen = () => { setConn('ok', 'Connected to ' + base()); res(true); };
+    sock.onerror = () => res(false);
+  });
+  sock.onclose = () => { if (ws !== sock) return; setConn('bad', 'Disconnected — reconnecting …'); setTimeout(() => { if (ws === sock) openWS(); }, 2000); };
+  sock.onmessage = ev => {
+    if (typeof ev.data !== 'string') { onPreview(ev.data); return; }
+    let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    onEvent(m.type, m.data || {});
+  };
+}
+
+// ---------- generation ----------
+let job = null;                 // {ids, done:Set, got:{}, meta:{}, posting, step, max}
+const finished = new Set();     // prompt ids the server reported finished (covers events that arrive before the POST returns)
+let previewUrl = null;
+
+function setBusy(on) {
+  $('#generate').hidden = on; $('#skip').hidden = !on; $('#stop').hidden = !on; $('#progress').hidden = !on;
+  if (!on && previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+}
+function updateBar(text) {
+  if (!job) return;
+  const total = job.total, done = job.done.size;
+  const frac = Math.min(1, (done + (job.max ? job.step / job.max : 0)) / total);
+  $('#bar-fill').style.width = (frac * 100).toFixed(1) + '%';
+  $('#bar-text').textContent = text || (job.max
+    ? `Sampling step ${job.step}/${job.max}, image ${Math.min(done + 1, total)}/${total} …`
+    : `Preparing image ${Math.min(done + 1, total)}/${total} …`);
+}
+function randomSeed() { return Math.floor(Math.random() * 2 ** 50); }
+
+async function generate() {
+  if (job) return;
+  showMsg('');
+  let wf, a;
+  try { wf = currentWf(); a = analyze(wf); } catch (e) { showMsg(e.message); return; }
+  const st = wfState(), perf = currentPerf();
+  let [width, height] = currentSize();
+  const seed = state.random ? randomSeed() : Math.max(0, Math.floor(Number(state.seed)) || 0);
+  if (state.random) { state.seed = String(seed); $('#seed').value = state.seed; save(); }
+  const pool = realStyles();
+  const steps = perf.steps;
+  const cfg = perf.cfg != null ? perf.cfg : st.cfg;
+  const loras = st.loras.filter(l => l.on && l.name && l.name !== 'None' && l.weight !== 0).map(l => ({name: l.name, weight: l.weight}));
+  const tb = turbo(), xs = TURBO_MODES.includes(state.performance);
+  const sampler = st.sampler, scheduler = st.scheduler;
+  const vaeName = st.vae && a.vae && !a.fileFields.some(f => f.field === 'vae_name') ? st.vae : null;
+  if (xs && tb.on !== false && tb.name && tb.name !== 'None' && tb.weight !== 0 && !loras.some(l => l.name === tb.name)) loras.push({name: tb.name, weight: tb.weight});
+  const mainFile = a.fileFields.find(f => f.main);
+  let n = Math.max(1, state.imageNumber | 0);
+  const j = job = {ids: [], done: new Set(), got: {}, meta: {}, posting: true, step: 0, max: 0, total: n};
+  const fail = msg => { if (job === j) { job = null; setBusy(false); } if (msg) showMsg(msg); };
+  setBusy(true); updateBar('Waiting for task to start …');
+  if (!info && !(await connect())) return fail();
+  if (!(await wsReady)) return fail('WebSocket connection to ComfyUI failed.');
+  let i2i = null, mode = '', prompt = state.prompt, noStyles = false;
+  if (state.inputImage) {
+    try {
+      if (state.itab === 'uov' && state.uov !== 'Disabled') { updateBar('Uploading image …'); i2i = await prepareUov(); mode = state.uov; }
+      else if (state.itab === 'inpaint') {
+        updateBar('Preparing mask …');
+        i2i = await prepareInpaint(); mode = i2i.outpaint ? 'Outpaint' : 'Inpaint';
+        const o = state.inpaint, extra = o.extra.trim();
+        if (o.method === 'modify') { prompt = extra; noStyles = true; }   // only what is typed for the masked area
+        else if (extra) prompt = extra;
+      }
+    } catch (e) { return fail(e.data ? describeError(e) : e.message); }
+  }
+  if (job !== j) return;
+  if (i2i) { width = i2i.width; height = i2i.height; if (i2i.kind === 'fast') n = 1; }
+  j.total = n; updateBar('Waiting for task to start …');
+  for (let i = 0; i < n; i++) {
+    const styles = noStyles ? [] : st.styles.map(name => name === RANDOM_STYLE ? pool[Math.floor(Math.random() * pool.length)] : pool.find(s => s.name === name)).filter(Boolean);
+    const text = applyStyles(prompt, state.negative, styles);
+    const meta = cleanMeta({
+      'Prompt': prompt, 'Negative Prompt': state.negative, 'Styles': styles.map(s => s.name).join(', '),
+      'Performance': state.performance, 'Steps': steps, 'Resolution': `${width}×${height}`, 'Guidance Scale': cfg,
+      'Sampler': sampler, 'Scheduler': scheduler, 'Seed': String(seed + i), 'Workflow': state.workflow,
+      'Base Model': mainFile ? st.files[mainFile.id + '.' + mainFile.field] || '' : '', 'VAE': vaeName,
+      'LoRAs': loras.map(l => `${l.name} : ${l.weight}`).join(', '), 'CLIP Skip': st.clipSkip || '', 'Input Image': mode
+    });
+    let graph;
+    try {
+      graph = i2i && i2i.kind === 'fast' ? buildFastUpscale(info, i2i) : buildPrompt(wf, a, {
+        positive: text.positive, negative: text.negative, width, height, steps, cfg, seed: seed + i,
+        sampler, scheduler, files: st.files, vae: vaeName, clipSkip: st.clipSkip || 0, prefix: 'Fooocus', loras, i2i, info});
+    } catch (e) { showMsg(e.message); break; }
+    try {
+      // preview_method asks ComfyUI for live previews for this job even if it was started without --preview-method
+      const res = await api('/prompt', {prompt: graph, client_id: clientId, extra_data: {preview_method: 'auto', extra_pnginfo: {fooocus: meta}}});
+      if (job !== j) return;                          // stopped meanwhile
+      j.ids.push(res.prompt_id); j.meta[res.prompt_id] = meta;
+    } catch (e) { showMsg(describeError(e)); break; }
+  }
+  if (job !== j) return;
+  j.posting = false; j.total = j.ids.length;
+  if (!j.ids.length) return fail();
+  for (const id of j.ids) if (finished.has(id)) markDone(id);
+  maybeFinish();
+}
+function describeError(e) {
+  const d = e.data;
+  if (!d) return 'Request failed: ' + e.message + '. Is ComfyUI running at ' + base() + '?';
+  let out = (d.error && (d.error.message || d.error.type)) || e.message;
+  for (const [id, ne] of Object.entries(d.node_errors || {}))
+    for (const er of ne.errors || []) out += `\n• ${ne.class_type || 'node'} #${id}: ${er.message}${er.details ? ' — ' + er.details : ''}`;
+  return out;
+}
+function onEvent(type, d) {
+  const id = d.prompt_id;
+  if (aux) { if (!aux.id) aux.pending.push([type, d]); else if (id === aux.id) auxEvent(aux, type, d); }
+  if (type === 'execution_success' || type === 'execution_error' || type === 'execution_interrupted' || (type === 'executing' && d.node === null)) {
+    if (id) finished.add(id);
+    if (type === 'execution_error' && job && job.ids.includes(id)) showMsg(`Error in ${d.node_type || 'node'}: ${d.exception_message || 'execution failed'}`);
+    markDone(id);
+    return;
+  }
+  if (!job || !job.ids.includes(id)) return;
+  if (type === 'progress') { job.step = d.value; job.max = d.max; updateBar(); }
+  else if (type === 'executed' && d.output && d.output.images) { job.got[id] = true; d.output.images.forEach(im => addImage(im, job.meta[id])); }
+}
+async function markDone(id) {
+  if (!job || !job.ids.includes(id) || job.done.has(id)) return;
+  const j = job;
+  j.done.add(id); j.step = 0; j.max = 0;
+  if (!j.got[id]) {                                   // fully cached run: outputs come from history
+    try {
+      const h = await api('/history/' + id);
+      for (const o of Object.values((h && h[id] && h[id].outputs) || {})) (o.images || []).forEach(im => addImage(im, j.meta[id]));
+    } catch (e) {}
+  }
+  if (job !== j) return;
+  updateBar();
+  maybeFinish();
+}
+function maybeFinish() {
+  if (job && !job.posting && job.done.size >= job.ids.length) { job = null; setBusy(false); showCurrent(); }
+}
+async function skip() { try { await api('/interrupt', {}); } catch (e) {} }
+async function stop() {
+  if (aux) {
+    const a = aux; a.cancelled = true; a.finish();
+    try { if (a.id) await api('/queue', {delete: [a.id]}); await api('/interrupt', {}); } catch (e) {}
+    return;
+  }
+  if (!job) return;
+  const rest = job.ids.filter(i => !job.done.has(i));
+  job = null; setBusy(false); showCurrent();
+  try { if (rest.length) await api('/queue', {delete: rest}); await api('/interrupt', {}); } catch (e) {}
+}
+
+// ---------- gallery ----------
+const images = [];              // newest first
+let current = null;
+function addImage(im, meta) {
+  const url = viewUrl(base(), im);
+  if (images.includes(url)) return;
+  images.unshift(url); current = url;
+  if (meta && (im.type || 'output') === 'output') {
+    const log = lsGet(LOG_KEY, []);
+    log.push({t: Date.now(), server: base(), im: {filename: im.filename, subfolder: im.subfolder || '', type: 'output'}, meta});
+    if (log.length > 3000) log.splice(0, log.length - 3000);
+    lsSet(LOG_KEY, log);
+  }
+  const t = el('img', {src: url, loading: 'lazy'});
+  t.onclick = () => { current = url; showCurrent(); };
+  $('#thumbs').prepend(t);
+  showCurrent();
+}
+function setViewer(src, link) {
+  const v = $('#viewer');
+  let img = v.querySelector('img');
+  if (!img) { v.innerHTML = ''; img = el('img'); v.append(img); }
+  img.src = src;
+  img.onclick = link ? () => window.open(link, '_blank') : null;
+}
+function showCurrent() {
+  if (current) setViewer(current, current);
+  for (const t of $('#thumbs').children) t.classList.toggle('sel', t.src === current);
+}
+function onPreview(buf) {
+  if (!job) return;
+  const blob = parsePreview(buf);
+  if (!blob) return;
+  const old = previewUrl;
+  previewUrl = URL.createObjectURL(blob);
+  setViewer(previewUrl, null);
+  if (old) URL.revokeObjectURL(old);
+}
+
+// ---------- rendering: Settings ----------
+function gcd(a, b) { return b ? gcd(b, a % b) : a; }
+function aspectLabel(wh) { const [w, h] = wh, g = gcd(w, h); return `${w}×${h} | ${w / g}:${h / g}`; }
+function renderSettingTab() {
+  const pf = $('#performance'); pf.innerHTML = '';
+  for (const name of [...Object.keys(PERF), CUSTOM]) {
+    const r = el('input', {type: 'radio', name: 'perf', checked: state.performance === name});
+    r.onchange = () => { state.performance = name; save(); renderSettingTab(); };
+    const l = el('label', null, r, name);
+    if (name === CUSTOM && state.performance === CUSTOM) {      // number of steps, shown only while Custom is selected
+      const steps = el('input', {type: 'text', inputMode: 'numeric', value: state.customSteps, title: 'Sampling steps'});
+      steps.onchange = () => { state.customSteps = clampInt(steps.value, 1, 200, 30); steps.value = state.customSteps; save(); };
+      l.append(steps);
+    }
+    pf.append(l);
+  }
+  perfHint();
+  const ab = $('#aspects'), sum = () => { $('#aspect-summary').textContent = 'Aspect Ratios ' + aspectLabel(currentSize()); };
+  ab.innerHTML = '';
+  for (const a of ASPECTS) {
+    const r = el('input', {type: 'radio', name: 'aspect', checked: state.aspect === a});
+    r.onchange = () => { state.aspect = a; save(); sum(); };
+    ab.append(el('label', null, r, aspectLabel(a.split('×').map(Number))));
+  }
+  const cr = el('input', {type: 'radio', name: 'aspect', checked: state.aspect === CUSTOM});
+  const cw = el('input', {type: 'text', inputMode: 'numeric', value: state.customW, title: 'Width'});
+  const ch = el('input', {type: 'text', inputMode: 'numeric', value: state.customH, title: 'Height'});
+  const pick = () => { state.aspect = CUSTOM; cr.checked = true; save(); sum(); };
+  cr.onchange = pick;
+  for (const [inp, key] of [[cw, 'customW'], [ch, 'customH']]) {
+    inp.onfocus = pick;
+    inp.onchange = () => { state[key] = clampInt(inp.value / 8, 8, 1024, 128) * 8; inp.value = state[key]; save(); sum(); };
+  }
+  ab.append(el('label', {className: 'wide'}, cr, CUSTOM, cw, '×', ch));
+  sum();
+  sliderField($('#image-number'), 'Image Number', 1, 32, 1, state.imageNumber, v => { state.imageNumber = v; save(); });
+  $('#negative').value = state.negative;
+  $('#random').checked = state.random;
+  $('#seed').value = state.seed;
+  $('#seed-box').hidden = state.random;
+}
+function perfHint() {
+  const p = currentPerf(), h = $('#perf-hint');
+  h.hidden = p.cfg == null;
+  if (p.cfg == null) return;
+  const tb = turbo(), on = tb.on !== false && tb.name && tb.name !== 'None';
+  h.textContent = `${p.steps} steps, CFG ${p.cfg}. ` + (on ? `Turbo LoRA: ${loraLabel(tb.name)} (weight ${tb.weight}).` : 'No Turbo LoRA chosen — pick one at the bottom of the Models tab.');
+}
+
+// ---------- rendering: Styles ----------
+const sampleFile = name => name.toLowerCase().replace(/ /g, '_') + '.jpg';
+const samplePath = name => (serverStyles ? base() + '/fooocus/samples/' : FOOOCUS_RAW + 'samples/') + sampleFile(name);
+function movePreview(e) {
+  const p = $('#style-preview');
+  p.style.left = Math.max(8, Math.min(e.clientX + 18, innerWidth - 216)) + 'px';
+  p.style.top = Math.max(8, Math.min(e.clientY + 18, innerHeight - 216)) + 'px';
+}
+function renderStyleTab() {
+  const st = wfState(), q = $('#style-search').value.trim().toLowerCase(), box = $('#style-list');
+  box.innerHTML = '';
+  const list = allStyles().filter(s => !q || s.name.toLowerCase().includes(q));
+  list.sort((a, b) => st.styles.includes(b.name) - st.styles.includes(a.name));
+  for (const s of list) {
+    const c = el('input', {type: 'checkbox', checked: st.styles.includes(s.name)});
+    c.onchange = () => { st.styles = c.checked ? [...st.styles, s.name] : st.styles.filter(n => n !== s.name); save(); };
+    const l = el('label', null, c, s.name);
+    l.onmouseenter = e => {
+      const p = $('#style-preview');
+      p.onerror = () => {                             // no local preview: try the Fooocus repository once
+        if (serverStyles && !p.dataset.fb) { p.dataset.fb = '1'; p.src = FOOOCUS_RAW + 'samples/' + sampleFile(s.name); }
+        else p.hidden = true;
+      };
+      p.dataset.fb = '';
+      p.onload = () => { if (p.dataset.name === s.name) p.hidden = false; };
+      p.dataset.name = s.name; p.hidden = true; p.src = samplePath(s.name);
+      movePreview(e);
+    };
+    l.onmousemove = movePreview;
+    l.onmouseleave = () => { const p = $('#style-preview'); p.dataset.name = ''; p.hidden = true; };
+    box.append(l);
+  }
+  if (!list.length) box.append(el('div', {textContent: 'No styles found.', style: 'color:var(--dim);padding:6px'}));
+  renderStyleNote();
+}
+function renderStyleNote() {
+  const note = $('#style-note'); note.innerHTML = '';
+  const link = (text, fn) => { const b = el('button', {className: 'linkbtn', textContent: text}); b.onclick = fn; return b; };
+  const text = serverStyles ? `Styles from the ComfyUI folder (${serverStyles.length}).`
+    : stylesStatus || (fooocusStyles ? `Original Fooocus styles (${fooocusStyles.length}).` : 'Built-in fallback styles (approximate).');
+  note.append(text + ' ');
+  if (!serverStyles) note.append(link(fooocusStyles ? 'Reload from GitHub' : 'Download originals', fetchFooocusStyles), ' · ');
+  note.append(link('Add styles JSON…', () => $('#style-file').click()), ' · ', link('Export styles.json', () => {
+    const data = realStyles().map(st => ({name: st.name, prompt: st.prompt, negative_prompt: st.negative_prompt}));
+    const a = el('a', {href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], {type: 'application/json'})), download: 'styles.json'});
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }));
+  if (state.userStyles.length) note.append(' · ', link(`Remove added (${state.userStyles.length})`, () => { state.userStyles = []; save(); renderStyleTab(); }));
+}
+
+// ---------- rendering: Models ----------
+const FIELD_LABELS = {ckpt_name: 'Checkpoint', unet_name: 'Diffusion Model', clip_name: 'Text Encoder', clip_name1: 'Text Encoder 1', clip_name2: 'Text Encoder 2', vae_name: 'VAE', lora_name: 'LoRA (from workflow)'};
+function bindFileSelect(sel, f, wf, st) {
+  const key = f.id + '.' + f.field, orig = wf[f.id].inputs[f.field];
+  const opts = info ? comboOptions(info, f.cls, f.field) : null;
+  let val = st.files[key] || orig;
+  if (opts && opts.length && !opts.includes(val)) val = pickOption(opts, orig);
+  st.files[key] = val;
+  fillSelect(sel, opts && opts.length ? opts : [val], val);
+  sel.onchange = () => { st.files[key] = sel.value; sel.title = sel.value; save(); };
+  if (info && !opts) return `Node "${f.cls}" is not available on this ComfyUI server.`;
+  if (info && !opts.length) return 'No files found for this loader on the server.';
+  return '';
+}
+// LoRAs for the current workflow: the subfolder of models/loras named after it ("anima", "lora_sdxl", ...) plus the files in the root.
+const loraParts = n => n.split(/[\\/]/);
+function loraDir() {
+  const all = (info && comboOptions(info, 'LoraLoader', 'lora_name')) || [];
+  const dirs = [...new Set(all.map(n => loraParts(n)).filter(p => p.length > 1).map(p => p[0]))];
+  const keys = [state.workflow.toLowerCase()];
+  try { const wf = currentWf(), a = analyze(wf); keys.push(a.modelRoot && wf[a.modelRoot.id].class_type === 'CheckpointLoaderSimple' ? 'sdxl' : 'anima'); } catch (e) {}
+  for (const k of keys) { const d = dirs.find(x => x.toLowerCase().includes(k)); if (d) return d; }
+  return null;
+}
+const isTurbo = n => /turbo/i.test(loraParts(n).pop());
+function loraFiles() {
+  const all = (info && comboOptions(info, 'LoraLoader', 'lora_name')) || [], dir = loraDir();
+  return dir ? all.filter(n => { const p = loraParts(n); return p.length === 1 || p[0] === dir; }) : all;
+}
+const loraList = () => loraFiles().filter(n => !isTurbo(n));     // regular LoRA slots
+const turboList = () => loraFiles().filter(isTurbo);             // Extreme Speed LoRA choice
+function loraLabel(n) { const dir = loraDir(), p = loraParts(n); return dir && p.length > 1 && p[0] === dir ? n.slice(dir.length + 1) : n; }
+// Turbo LoRA: added automatically in Extreme Speed and Lightning (chosen at the bottom of the Models tab)
+function turbo() {
+  const st = wfState();
+  if (!st.turbo) st.turbo = {on: true, name: null, weight: 1};
+  if (st.turbo.name === null && info) st.turbo.name = turboList()[0] || 'None';
+  return st.turbo;
+}
+function renderModelTab() {
+  fillSelect($('#workflow'), [...Object.keys(TEMPLATES), ...Object.keys(state.customWfs)], state.workflow);
+  const box = $('#files'), bm = $('#base-model'), bw = $('#base-warn'); box.innerHTML = ''; bw.hidden = true;
+  let wf, a;
+  try { wf = currentWf(); a = analyze(wf); } catch (e) { box.append(el('div', {className: 'field', textContent: e.message})); return; }
+  const st = wfState();
+  const main = a.fileFields.find(f => f.main);
+  bm.disabled = !main;
+  if (main) { const w = bindFileSelect(bm, main, wf, st); bw.hidden = !w; bw.textContent = w; }
+  else fillSelect(bm, ['—'], '—');
+
+  const lb = $('#loras'); lb.innerHTML = '';
+  const loraOpts = ['None', ...loraList()];
+  st.loras.forEach((l, i) => {
+    const on = el('input', {type: 'checkbox', checked: l.on, title: 'Enable'});
+    on.onchange = () => { l.on = on.checked; save(); };
+    const s = el('select'); fillSelect(s, loraOpts, l.name, loraLabel);
+    s.onchange = () => { l.name = s.value; s.title = s.value; save(); };
+    const w = el('div');
+    sliderField(w, 'Weight', -2, 2, 0.01, l.weight, v => { l.weight = v; save(); });
+    lb.append(el('div', {className: 'lora'}, el('div', {className: 'chk'}, on), el('div', null, el('span', {className: 'lbl', textContent: 'LoRA ' + (i + 1)}), s), w));
+  });
+
+  if (a.vae && !a.fileFields.some(f => f.field === 'vae_name')) {       // the workflow takes its VAE from the checkpoint: offer another one
+    const DEF = 'Default (model)', s = el('select');
+    fillSelect(s, [DEF, ...((info && comboOptions(info, 'VAELoader', 'vae_name')) || [])], st.vae || DEF);
+    s.onchange = () => { st.vae = s.value === DEF ? '' : s.value; s.title = s.value; save(); };
+    box.append(el('div', {className: 'field'}, el('span', {className: 'lbl', textContent: 'VAE'}), s));
+  }
+  for (const f of a.fileFields.filter(f => !f.main)) {
+    const s = el('select'), w = bindFileSelect(s, f, wf, st);
+    const fld = el('div', {className: 'field'}, el('span', {className: 'lbl', textContent: FIELD_LABELS[f.field] || `${f.cls} · ${f.field}`}), s);
+    if (w) fld.append(el('div', {className: 'warn', textContent: w}));
+    box.append(fld);
+  }
+  const imp = el('button', {className: 'small', textContent: 'Import workflow (API JSON)…'});
+  imp.onclick = () => $('#wf-file').click();
+  const row = el('div', {className: 'row'}, imp);
+  if (state.workflow in state.customWfs) {
+    const del = el('button', {className: 'small', textContent: `Remove "${state.workflow}"`});
+    del.onclick = () => {
+      delete state.customWfs[state.workflow]; delete state.perWf[state.workflow]; state.workflow = 'SDXL';
+      save(); renderStyleTab(); renderModelTab(); renderAdvTab();
+    };
+    row.append(del);
+  }
+  const tb = turbo(), tbox = $('#turbo-box');
+  const ton = el('input', {type: 'checkbox', checked: tb.on !== false, title: 'Enable'});
+  ton.onchange = () => { tb.on = ton.checked; save(); perfHint(); };
+  const ts = el('select'); fillSelect(ts, ['None', ...turboList()], tb.name || 'None', loraLabel);
+  ts.onchange = () => { tb.name = ts.value; ts.title = ts.value; save(); perfHint(); };
+  const tw = el('div');
+  sliderField(tw, 'Weight', -2, 2, 0.01, tb.weight, v => { tb.weight = v; save(); perfHint(); });
+  tbox.innerHTML = '';
+  tbox.append(el('div', {className: 'lora'}, el('div', {className: 'chk'}, ton), el('div', null, el('span', {className: 'lbl', textContent: 'Turbo LoRA'}), ts), tw),
+    el('div', {className: 'field'}, el('div', {className: 'note', style: 'margin:0', textContent: 'Added automatically when Performance is Extreme Speed or Lightning. LoRA files with "turbo" in the name are listed only here and are hidden from the LoRA slots above.'})));
+  perfHint();
+  box.append(el('div', {className: 'field'}, el('span', {className: 'lbl', textContent: 'Custom workflow'}), row,
+    el('div', {className: 'note', textContent: 'In ComfyUI: Workflow → Export (API). Prompt, size, seed, steps, models and LoRAs are wired in automatically.'})));
+  save();
+}
+
+// ---------- rendering: Advanced ----------
+function renderAdvTab() {
+  const st = wfState();
+  sliderField($('#cfg'), 'Guidance Scale', 1, 30, 0.1, st.cfg, v => { wfState().cfg = v; save(); }, 'Higher value means style is cleaner, vivider, and more artistic.');
+  fillSelect($('#sampler'), (info && comboOptions(info, 'KSampler', 'sampler_name')) || [st.sampler], st.sampler);
+  fillSelect($('#scheduler'), (info && comboOptions(info, 'KSampler', 'scheduler')) || [st.scheduler], st.scheduler);
+  sliderField($('#clip-skip'), 'CLIP Skip', 0, 12, 1, st.clipSkip || 0, v => { wfState().clipSkip = v; save(); }, '0 keeps the model default. Other values add a "CLIP Set Last Layer" node (-N) before the prompt is encoded.');
+  $('#server').value = state.server;
+}
+function renderAll() { renderSettingTab(); renderStyleTab(); renderModelTab(); renderAdvTab(); renderInputPanel(); }
+function showTab(t) {
+  state.tab = t;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  document.querySelectorAll('#right .panel').forEach(p => p.hidden = p.dataset.panel !== t);
+  save();
+}
+
+// ---------- Input Image: slots, drop zones, mask painting ----------
+const drops = {};
+const slots = {uov: null, inp: null, mask: null, meta: null};   // {file, img, url, w, h, ...}
+const mkCanvas = (w, h) => { const c = el('canvas', {width: w, height: h}); return [c, c.getContext('2d', {willReadFrequently: true})]; };
+function loadImageFile(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => res({file, img, url, w: img.naturalWidth, h: img.naturalHeight});
+    img.onerror = () => rej(new Error('Not an image'));
+    img.src = url;
+  });
+}
+function makeDrop(box, key, onChange) {
+  const input = el('input', {type: 'file', accept: 'image/*', hidden: true});
+  const take = async file => {
+    try { slots[key] = await loadImageFile(file); } catch (e) { showMsg('Could not read this file as an image.'); return; }
+    draw(); if (onChange) onChange(slots[key]);
+  };
+  const draw = () => {
+    box.innerHTML = ''; box.append(input);
+    const s = slots[key];
+    box.style.cursor = s ? 'default' : 'pointer';
+    if (!s) { box.append(el('div', {className: 'ph', innerHTML: 'Drop Image Here<br><span>- or -</span><br>Click to Upload'})); return; }
+    const x = el('button', {className: 'x', textContent: '✕', title: 'Remove image'});
+    x.onclick = e => { e.stopPropagation(); URL.revokeObjectURL(s.url); slots[key] = null; draw(); if (onChange) onChange(null); };
+    box.append(key === 'inp' ? paintView(s) : el('img', {src: s.url}), x);
+  };
+  input.onclick = e => e.stopPropagation();
+  input.onchange = () => { if (input.files[0]) take(input.files[0]); input.value = ''; };
+  box.onclick = () => { if (!slots[key]) input.click(); };
+  box.ondragover = e => { e.preventDefault(); box.classList.add('over'); };
+  box.ondragleave = () => box.classList.remove('over');
+  box.ondrop = async e => {
+    e.preventDefault(); box.classList.remove('over');
+    let f = e.dataTransfer.files[0];
+    if (!f) {                                         // an image dragged from the gallery arrives as a URL
+      const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+      try { const b = await (await fetch(url)).blob(); f = new File([b], 'image.png', {type: b.type}); } catch (err) {}
+    }
+    if (f) take(f);
+  };
+  draw();
+  return draw;
+}
+function drawStrokes(ctx, strokes, k, ox, oy, eraseColor) {
+  ctx.lineCap = ctx.lineJoin = 'round';
+  for (const st of strokes) {
+    const p = st.pts;
+    // eraser strokes cut the overlay; in the final mask they are painted black
+    if (st.erase && !eraseColor) ctx.globalCompositeOperation = 'destination-out';
+    ctx.strokeStyle = ctx.fillStyle = st.erase && eraseColor ? eraseColor : '#fff';
+    ctx.lineWidth = st.size * k;
+    ctx.beginPath(); ctx.moveTo(ox + p[0][0] * k, oy + p[0][1] * k);
+    for (const q of p) ctx.lineTo(ox + q[0] * k, oy + q[1] * k);
+    ctx.stroke();
+    if (p.length === 1) { ctx.beginPath(); ctx.arc(ox + p[0][0] * k, oy + p[0][1] * k, st.size * k / 2, 0, 7); ctx.fill(); }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+}
+let eraser = false;
+function maskOverlay(m) {                             // uploaded / generated mask as white with brightness as opacity
+  if (!m.overlay) {
+    const [c, x] = mkCanvas(m.w, m.h);
+    x.drawImage(m.img, 0, 0);
+    const d = x.getImageData(0, 0, m.w, m.h), a = d.data;
+    for (let i = 0; i < a.length; i += 4) { a[i + 3] = a[i]; a[i] = a[i + 1] = a[i + 2] = 255; }
+    x.putImageData(d, 0, 0);
+    m.overlay = c;
+  }
+  return m.overlay;
+}
+function paintView(s) {
+  s.strokes = s.strokes || [];
+  const k = Math.min(1, 2048 / Math.max(s.w, s.h));
+  const [cv, ctx] = mkCanvas(Math.round(s.w * k), Math.round(s.h * k));
+  const ring = el('div', {className: 'ring', hidden: true});
+  s.redraw = () => {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    if (state.inpaint.advanced && slots.mask) ctx.drawImage(maskOverlay(slots.mask), 0, 0, cv.width, cv.height);
+    drawStrokes(ctx, s.strokes, k, 0, 0);
+  };
+  let cur = null;
+  const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * s.w, (e.clientY - r.top) / r.height * s.h, s.w / r.width]; };
+  const moveRing = e => {
+    const r = cv.getBoundingClientRect(), d = Number($('#brush').value);
+    ring.hidden = false; ring.style.width = ring.style.height = d + 'px';
+    ring.style.left = (e.clientX - r.left - d / 2) + 'px'; ring.style.top = (e.clientY - r.top - d / 2) + 'px';
+  };
+  cv.onpointerdown = e => {
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    const [x, y, f] = pos(e);
+    cur = {size: Number($('#brush').value) * f, erase: eraser, pts: [[x, y]]};
+    s.strokes.push(cur); s.redraw(); moveRing(e);
+  };
+  cv.onpointermove = e => { moveRing(e); if (!cur) return; const [x, y] = pos(e); cur.pts.push([x, y]); s.redraw(); };
+  cv.onpointerup = cv.onpointercancel = e => { cur = null; if (e.pointerType !== 'mouse') ring.hidden = true; };
+  cv.onpointerleave = () => { if (!cur) ring.hidden = true; };
+  s.redraw();
+  return el('div', {className: 'paint'}, el('img', {src: s.url, draggable: false}), cv, ring);
+}
+
+async function uploadImage(blob, name) {
+  const fd = new FormData();
+  fd.append('image', blob, `${Date.now()}_${String(name).replace(/[^\w.-]+/g, '_')}`);
+  fd.append('type', 'input'); fd.append('subfolder', 'fooocus'); fd.append('overwrite', 'true');
+  const r = await fetch(base() + '/upload/image', {method: 'POST', body: fd});
+  if (!r.ok) throw new Error('Image upload failed (HTTP ' + r.status + ').');
+  const d = await r.json();
+  return d.subfolder ? d.subfolder + '/' + d.name : d.name;
+}
+const toBlob = cv => new Promise(res => cv.toBlob(res, 'image/png'));
+const effUpscaler = () => {
+  const list = (info && comboOptions(info, 'UpscaleModelLoader', 'model_name')) || [];
+  if (state.upscaler === NO_UPSCALER) return null;
+  return list.includes(state.upscaler) ? state.upscaler : (list[0] || null);
+};
+async function prepareUov() {
+  const s = slots.uov;
+  if (!s) throw new Error('Drop an image into the "Upscale or Variation" tab first.');
+  if (!s.uploaded || s.uploadedTo !== base()) { s.uploaded = await uploadImage(s.file, s.file.name || 'image.png'); s.uploadedTo = base(); }
+  const m = state.uov, r8 = v => Math.max(64, Math.round(v / 8) * 8);
+  if (m.startsWith('Vary')) {
+    const area = s.w * s.h, t = 1024 * 1024, f = area > t * 1.25 || area < t * 0.75 ? Math.sqrt(t / area) : 1;
+    return {kind: 'vary', image: s.uploaded, width: r8(s.w * f), height: r8(s.h * f),
+      denoise: m.includes('Subtle') ? 0.5 : 0.85};
+  }
+  const f = m.includes('1.5') ? 1.5 : 2;
+  return {kind: m.includes('Fast') ? 'fast' : 'upscale', image: s.uploaded, width: r8(s.w * f), height: r8(s.h * f),
+    upscaler: effUpscaler(), denoise: 0.382};
+}
+
+// Mask helpers (canvas): black/white only, grow/shrink through blur + threshold.
+function binarize(ctx, w, h, thr, invert) {
+  const d = ctx.getImageData(0, 0, w, h), a = d.data;
+  for (let i = 0; i < a.length; i += 4) { const v = (a[i] > thr) !== !!invert ? 255 : 0; a[i] = a[i + 1] = a[i + 2] = v; a[i + 3] = 255; }
+  ctx.putImageData(d, 0, 0);
+}
+function blurred(src, w, h, r) {
+  const [c, x] = mkCanvas(w, h);
+  x.fillStyle = '#000'; x.fillRect(0, 0, w, h);
+  x.filter = `blur(${r}px)`; x.drawImage(src, 0, 0); x.filter = 'none';
+  return [c, x];
+}
+function morph(cv, w, h, n) {                         // n > 0 grows the white area by about n px, n < 0 shrinks it
+  if (!n) return cv;
+  const [c, x] = blurred(cv, w, h, Math.abs(n) / 1.75);
+  binarize(x, w, h, n > 0 ? 10 : 245);
+  return c;
+}
+// Optional Fooocus inpaint patch: needs the ComfyUI Inpaint Nodes extension and its two files in models/inpaint.
+function engineFiles() {
+  if (!info || !info.INPAINT_ApplyFooocusInpaint) return null;
+  const files = comboOptions(info, 'INPAINT_LoadFooocusInpaint', 'head') || [];
+  const head = files.find(f => /head/i.test(f)), patch = files.find(f => /v26.*\.patch$/i.test(f)) || files.find(f => /\.patch$/i.test(f));
+  return head && patch ? {head, patch} : null;
+}
+const engineOn = () => { const st = wfState(); return st.engine != null ? st.engine : state.workflow === 'SDXL'; };
+async function prepareInpaint() {
+  const s = slots.inp, o = state.inpaint;
+  if (!s) throw new Error('Drop an image into the "Inpaint or Outpaint" tab first.');
+  const W0 = s.w, H0 = s.h, d = o.method === 'default' ? o.dirs : [], pf = (o.pad || 30) / 100;
+  const L = d.includes('Left') ? Math.round(W0 * pf) : 0, R = d.includes('Right') ? Math.round(W0 * pf) : 0;
+  const T = d.includes('Top') ? Math.round(H0 * pf) : 0, B = d.includes('Bottom') ? Math.round(H0 * pf) : 0;
+  const W = W0 + L + R, H = H0 + T + B, outpaint = W !== W0 || H !== H0;
+  // image, with outpaint bands filled by stretching the edge pixels
+  const [ic, ix] = mkCanvas(W, H);
+  ix.drawImage(s.img, L, T);
+  if (L) ix.drawImage(ic, L, T, 1, H0, 0, T, L, H0);
+  if (R) ix.drawImage(ic, L + W0 - 1, T, 1, H0, L + W0, T, R, H0);
+  if (T) ix.drawImage(ic, 0, T, W, 1, 0, 0, W, T);
+  if (B) ix.drawImage(ic, 0, T + H0 - 1, W, 1, 0, T + H0, W, B);
+  // painted + uploaded mask over the original image area
+  let [mc, mx] = mkCanvas(W0, H0);
+  mx.fillStyle = '#000'; mx.fillRect(0, 0, W0, H0);
+  if (o.advanced && slots.mask) mx.drawImage(slots.mask.img, 0, 0, W0, H0);
+  drawStrokes(mx, s.strokes || [], 1, 0, 0, '#000');
+  binarize(mx, W0, H0, 127, o.advanced && o.invert);
+  if (o.advanced && o.erode) mc = morph(mc, W0, H0, o.erode);
+  // full-size hard mask: outpaint bands are always white
+  const [hc, hx] = mkCanvas(W, H);
+  hx.fillStyle = outpaint ? '#fff' : '#000'; hx.fillRect(0, 0, W, H);
+  hx.drawImage(mc, L, T);
+  const hd = hx.getImageData(0, 0, W, H), ha = hd.data;
+  let bx0 = W, by0 = H, bx1 = -1, by1 = -1;
+  for (let y = 0, i = 0; y < H; y++) for (let x = 0; x < W; x++, i += 4) if (ha[i] > 127) {
+    if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y;
+  }
+  if (bx1 < 0) throw new Error('Paint over the area to change (or pick an Outpaint Direction) first.');
+  const reg = inpaintRegion(bx0, by0, bx1 + 1, by1 + 1, W, H, outpaint ? 1 : o.field);
+  // soft mask for pasting the result back: the hard mask grown and feathered
+  const r = Math.max(6, Math.round(0.02 * Math.max(reg.crop.w, reg.crop.h)));
+  const px = (grow, blur) => blurred(morph(hc, W, H, grow), W, H, blur)[1].getImageData(0, 0, W, H).data;
+  let sa;
+  if (outpaint) {
+    // denoising strength fades out over a strip of the original image, so the seam gets redrawn lightly instead of ending in a step
+    const D = Math.max(24, Math.round(0.08 * Math.min(W0, H0))), ga = px(D, D / 2);
+    sa = px(2.2 * D, D / 2);
+    for (let i = 0; i < ha.length; i += 4) ha[i] = Math.max(ha[i], ga[i]);
+  } else {
+    const ga = px(r, r / 2);                          // slight feather outside the painted area
+    sa = px(2 * r, r);
+    for (let i = 0; i < ha.length; i += 4) ha[i] = Math.max(ha[i], ga[i]);
+  }
+  for (let i = 0; i < ha.length; i += 4) { ha[i + 1] = Math.max(sa[i], ha[i]); ha[i + 2] = 0; ha[i + 3] = 255; }   // R = denoise mask, G = paste mask
+  hx.putImageData(hd, 0, 0);
+  const stamp = (s.file.name || 'image').replace(/\.\w+$/, '');
+  const [image, mask] = await Promise.all([uploadImage(await toBlob(ic), stamp + '.png'), uploadImage(await toBlob(hc), stamp + '_mask.png')]);
+  return {kind: 'inpaint', image, mask, crop: reg.crop, work: reg.work, denoise: outpaint ? 1 : o.denoise, width: W, height: H, outpaint,
+    differential: !!(info && info.DifferentialDiffusion),
+    engine: engineOn() && o.method !== 'detail' ? engineFiles() : null};
+}
+
+// ---------- Input Image: Metadata / Describe ----------
+// Helper jobs (describe, mask generation): one small graph, progress shown in the main bar, Stop cancels.
+let aux = null;
+function auxEvent(a, type, d) {
+  if (type === 'progress') { a.value = d.value; a.max = d.max; }
+  else if (type === 'executed' && d.output) a.outputs.push(d.output);
+  else if (type === 'execution_error') { a.error = `${d.node_type || 'node'}: ${d.exception_message || d.exception_type || 'execution failed'}`; a.finish(); }
+  else if (type === 'execution_success' || type === 'execution_interrupted' || (type === 'executing' && d.node === null)) a.finish();
+}
+async function runAux(label, graph) {
+  if (aux || job) throw new Error('wait for the current task to finish');
+  if (!info && !(await connect())) throw new Error('ComfyUI is not reachable');
+  if (!(await wsReady)) throw new Error('no connection to ComfyUI');
+  let done;
+  const wait = new Promise(r => { done = r; });
+  const a = aux = {label, id: null, start: Date.now(), value: 0, max: 0, outputs: [], pending: [], error: null, cancelled: false, finish: () => done()};
+  const tick = () => {
+    $('#bar-fill').style.width = a.max ? (a.value / a.max * 100).toFixed(1) + '%' : '0';
+    $('#bar-text').textContent = `${label} … ${Math.round((Date.now() - a.start) / 1000)} s` + (a.max ? ` (${a.value}/${a.max})` : '');
+  };
+  $('#generate').hidden = true; $('#stop').hidden = false; $('#progress').hidden = false; tick();
+  const timer = setInterval(tick, 500);
+  try {
+    a.id = (await api('/prompt', {prompt: graph, client_id: clientId})).prompt_id;
+    for (const [type, d] of a.pending) if (d.prompt_id === a.id) auxEvent(a, type, d);
+    if (finished.has(a.id)) a.finish();
+    await wait;
+    if (a.cancelled) throw new Error('cancelled');
+    if (a.error) throw new Error(a.error);
+    if (!a.outputs.length) try {
+      const h = await api('/history/' + a.id);
+      a.outputs.push(...Object.values((h && h[a.id] && h[a.id].outputs) || {}));
+    } catch (e) {}
+    return a.outputs;
+  } finally { clearInterval(timer); aux = null; if (!job) setBusy(false); }
+}
+const errText = e => e.data ? describeError(e) : e.message;
+const outputStrings = o => { const flat = v => Array.isArray(v) ? v.flatMap(flat) : [v]; return flat(Object.values(o || {})).filter(x => typeof x === 'string' && x.trim()); };
+async function describe() {
+  const s = slots.meta, cls = TAGGERS.find(c => info && info[c]);
+  if (!s || !cls) return;
+  renderMetaBox('Describing the image … The first run downloads the tagger model, which can take several minutes; the ComfyUI console shows what it is doing.');
+  try {
+    const name = await uploadImage(s.file, s.file.name || 'image.png');
+    const g = {"1": {class_type: 'LoadImage', inputs: {image: name}}, "2": {class_type: cls, inputs: withDefaults(info, cls, {image: ["1", 0]})}};
+    if (info.PreviewAny) g["3"] = {class_type: 'PreviewAny', inputs: {source: ["2", 0]}};
+    const texts = (await runAux('Describing image', g)).flatMap(outputStrings);
+    if (!texts.length) throw new Error('the tagger returned no text');
+    s.described = texts.sort((x, y) => y.length - x.length)[0].trim().replace(/,\s*$/, '');
+    renderMetaBox();
+  } catch (e) {
+    const t = errText(e);
+    renderMetaBox('Describe failed: ' + t + (/timeout/i.test(t) ? '. The tagger could not download its model in time; put the model files into the models folder of the tagger extension by hand.' : ''));
+  }
+}
+
+// Automatic mask from a text prompt: optional "segment anything" extension (GroundingDINO + SAM).
+const SEG = {seg: 'GroundingDinoSAMSegment (segment anything)', sam: 'SAMModelLoader (segment anything)', dino: 'GroundingDinoModelLoader (segment anything)'};
+const segAvailable = () => !!(info && info[SEG.seg] && info[SEG.sam] && info[SEG.dino] && info.MaskToImage && info.PreviewImage);
+async function autoMask() {
+  const s = slots.inp, text = (state.inpaint.maskPrompt || '').trim();
+  if (!s) { showMsg('Drop an image into the "Inpaint or Outpaint" tab first.'); return; }
+  if (!text) { showMsg('Type what to mask, for example: face'); return; }
+  showMsg('');
+  try {
+    const name = await uploadImage(s.file, s.file.name || 'image.png');
+    const sams = comboOptions(info, SEG.sam, 'model_name') || [];
+    const sam = withDefaults(info, SEG.sam, {});
+    const small = sams.find(n => /vit_b/i.test(n));           // the smallest SAM is plenty for a mask
+    if (small) sam.model_name = small;
+    const g = {
+      "1": {class_type: 'LoadImage', inputs: {image: name}},
+      "2": {class_type: SEG.sam, inputs: sam},
+      "3": {class_type: SEG.dino, inputs: withDefaults(info, SEG.dino, {})},
+      "4": {class_type: SEG.seg, inputs: withDefaults(info, SEG.seg, {sam_model: ["2", 0], grounding_dino_model: ["3", 0], image: ["1", 0], prompt: text})},
+      "5": {class_type: 'MaskToImage', inputs: {mask: ["4", 1]}},
+      "6": {class_type: 'PreviewImage', inputs: {images: ["5", 0]}}
+    };
+    const im = (await runAux('Generating mask', g)).flatMap(o => o.images || [])[0];
+    if (!im) throw new Error('no mask came back');
+    const blob = await (await fetch(viewUrl(base(), im))).blob();
+    slots.mask = await loadImageFile(new File([blob], 'mask.png', {type: blob.type || 'image/png'}));
+    drops.mask();
+    if (s.redraw) s.redraw();
+  } catch (e) { showMsg('Mask generation failed: ' + errText(e)); }
+}
+function renderMetaBox(status) {
+  const box = $('#meta-box'), s = slots.meta, note = t => el('div', {className: 'note', style: 'margin:0 0 8px', textContent: t});
+  box.innerHTML = '';
+  if (!s) { box.append(note('Drop an image to read the parameters it was generated with.')); return; }
+  if (s.meta) {
+    const table = el('table');
+    for (const [k, v] of Object.entries(s.meta)) table.append(el('tr', null, el('td', {textContent: k}), el('td', {textContent: String(v)})));
+    const b = el('button', {textContent: 'Apply Metadata'});
+    b.onclick = () => { applyMeta(s.meta); renderMetaBox('Applied.'); };
+    box.append(table, b);
+  } else {
+    box.append(el('div', {textContent: 'No metadata found in this image.', style: 'margin-bottom:10px'}));
+    if (s.described) {
+      const table = el('table');
+      table.append(el('tr', null, el('td', {textContent: 'Description'}), el('td', {textContent: s.described})));
+      const b = el('button', {textContent: 'Use as Prompt'});
+      b.onclick = () => { state.prompt = s.described; $('#prompt').value = state.prompt; save(); growAll(); renderMetaBox('Prompt replaced.'); };
+      box.append(table, b);
+    } else if (TAGGERS.some(c => info && info[c])) {
+      const b = el('button', {textContent: 'Describe Image'});
+      b.onclick = describe;
+      box.append(b);
+    } else box.append(note('Describing an image needs a tagger node, which ComfyUI does not include. ComfyUI-WD14-Tagger was not found on this server; install it, restart ComfyUI and press Refresh All Files.'));
+  }
+  if (status) box.append(el('div', {className: 'note', textContent: status}));
+}
+function applyMeta(m) {
+  if (m['Workflow'] && (TEMPLATES[m['Workflow']] || state.customWfs[m['Workflow']])) state.workflow = m['Workflow'];
+  const st = wfState(), has = (cls, f, v) => !info || (comboOptions(info, cls, f) || []).includes(v);
+  if (m['Prompt'] != null) state.prompt = String(m['Prompt']);
+  state.negative = m['Negative Prompt'] != null ? String(m['Negative Prompt']) : '';
+  $('#prompt').value = state.prompt;
+  if (m['Styles'] != null) { const names = new Set(allStyles().map(s => s.name)); st.styles = String(m['Styles']).split(', ').filter(n => names.has(n)); }
+  if (PERF[m['Performance']] || m['Performance'] === CUSTOM) state.performance = m['Performance'];
+  const res = String(m['Resolution'] || '').replace(/x/i, '×'), wh = res.match(/^(\d+)×(\d+)$/);
+  if (ASPECTS.includes(res)) state.aspect = res;
+  else if (wh && !m['Input Image']) { state.aspect = CUSTOM; state.customW = Number(wh[1]); state.customH = Number(wh[2]); }
+  if (m['CLIP Skip'] != null && isFinite(m['CLIP Skip'])) st.clipSkip = Number(m['CLIP Skip']);
+  if (m['Seed'] != null && /^\d+$/.test(String(m['Seed']))) { state.seed = String(m['Seed']); state.random = false; }
+  if (m['Guidance Scale'] != null && isFinite(m['Guidance Scale'])) st.cfg = Number(m['Guidance Scale']);
+  if (typeof m['Sampler'] === 'string' && has('KSampler', 'sampler_name', m['Sampler'])) st.sampler = m['Sampler'];
+  if (typeof m['Scheduler'] === 'string' && has('KSampler', 'scheduler', m['Scheduler'])) st.scheduler = m['Scheduler'];
+  if (m['Steps'] != null && isFinite(m['Steps']) && Number(m['Steps']) !== currentPerf().steps) { state.performance = CUSTOM; state.customSteps = Number(m['Steps']); }
+  try {
+    const main = analyze(currentWf()).fileFields.find(f => f.main);
+    if (main && m['Base Model'] && has(main.cls, main.field, m['Base Model'])) st.files[main.id + '.' + main.field] = m['Base Model'];
+  } catch (e) {}
+  if (m['LoRAs'] != null) {
+    const list = String(m['LoRAs']).split(', ').map(x => x.match(/^(.*) : (-?[\d.]+)$/)).filter(Boolean);
+    st.loras.forEach((l, i) => { const x = list[i]; l.on = true; l.name = x ? x[1] : 'None'; l.weight = x ? Number(x[2]) : 1; });
+  }
+  save(); renderAll(); growAll();
+}
+
+// ---------- rendering: Input Image panel ----------
+function renderInputPanel() {
+  $('#input-image').checked = state.inputImage;
+  $('#input-panel').hidden = !state.inputImage;
+  document.querySelectorAll('#itabs button').forEach(b => b.classList.toggle('on', b.dataset.itab === state.itab));
+  document.querySelectorAll('#input-panel .panel').forEach(p => p.hidden = p.dataset.ipanel !== state.itab);
+  setTimeout(growAll, 0);
+  const um = $('#uov-method'); um.innerHTML = '';
+  for (const name of UOV) {
+    const r = el('input', {type: 'radio', name: 'uov', checked: state.uov === name});
+    r.onchange = () => { state.uov = name; save(); };
+    um.append(el('label', null, r, name));
+  }
+  const ups = [NO_UPSCALER, ...((info && comboOptions(info, 'UpscaleModelLoader', 'model_name')) || [])];
+  fillSelect($('#upscaler'), ups, state.upscaler === NO_UPSCALER ? NO_UPSCALER : (effUpscaler() || state.upscaler || NO_UPSCALER));
+  const o = state.inpaint;
+  $('#inp-adv').checked = o.advanced;
+  document.querySelectorAll('.advm').forEach(e => e.hidden = !o.advanced);
+  const ms = $('#inp-method'); ms.innerHTML = '';
+  for (const [k, v] of Object.entries(INPAINT_METHODS)) ms.append(el('option', {value: k, textContent: v[0]}));
+  ms.value = o.method;
+  $('#inp-extra').value = o.extra;
+  const db = $('#inp-dirs'); db.innerHTML = '';
+  for (const name of ['Left', 'Right', 'Top', 'Bottom']) {
+    const c = el('input', {type: 'checkbox', checked: o.dirs.includes(name)});
+    c.onchange = () => { o.dirs = c.checked ? [...o.dirs, name] : o.dirs.filter(x => x !== name); save(); };
+    db.append(el('label', null, c, name));
+  }
+  $('#inp-dirs-box').hidden = o.method !== 'default';
+  sliderField($('#inp-pad'), 'Outpaint Expansion (% of the side)', 5, 100, 1, o.pad || 30, v => { o.pad = v; save(); });
+  const eng = engineFiles();
+  $('#inp-engine-box').hidden = !eng || o.method === 'detail';
+  $('#inp-engine').checked = engineOn();
+  $('#automask-box').hidden = !o.advanced || !segAvailable();
+  $('#mask-prompt').value = o.maskPrompt || '';
+  const notes = [];
+  if (info && !eng) notes.push('Fooocus inpaint engine (SDXL only) was not found on this server: it needs the ComfyUI Inpaint Nodes extension with fooocus_inpaint_head.pth and inpaint_v26.fooocus.patch in models/inpaint. Using standard ComfyUI inpainting.');
+  if (info && !segAvailable()) notes.push('Automatic mask generation needs the "segment anything" extension (comfyui_segment_anything), which was not found on this server. Paint or upload the mask instead.');
+  $('#inp-note').hidden = !notes.length;
+  $('#inp-note').textContent = notes.join('\n');
+  $('#inp-invert').checked = o.invert;
+  sliderField($('#inp-erode'), 'Mask Erode or Dilate', -64, 64, 1, o.erode, v => { o.erode = v; save(); }, 'Positive value will make white area in the mask larger, negative value will make white area smaller.');
+  sliderField($('#inp-denoise'), 'Inpaint Denoising Strength', 0, 1, 0.001, o.denoise, v => { o.denoise = v; save(); }, 'Same as the denoising strength in A1111 inpaint.');
+  sliderField($('#inp-field'), 'Inpaint Respective Field', 0, 1, 0.001, o.field, v => { o.field = v; save(); }, 'The area to inpaint. Value 0 is same as "Only Masked" in A1111. Value 1 is same as "Whole Image" in A1111.');
+  renderMetaBox();
+}
+
+// ---------- History Log page (same file, opened with #history) ----------
+const dayOf = t => { const d = new Date(t), z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+async function renderHistory() {
+  document.title = 'Fooocus Log';
+  const root = el('div', {id: 'history'});
+  document.body.innerHTML = ''; document.body.append(root);
+  const local = lsGet(LOG_KEY, []).map(e => ({t: e.t, url: viewUrl(e.server, e.im), meta: e.meta}));
+  const localMeta = new Map(local.map(e => [e.url, e.meta]));
+  let entries = null, note = '', fromFolder = false;
+  try {                                               // fooocus-ui folder installed: list the output folder itself, survives restarts
+    const r = await fetch(base() + '/fooocus/history');
+    if (r.ok) {
+      entries = (await r.json()).items.map(i => ({t: i.t, url: viewUrl(base(), {filename: i.filename, subfolder: i.subfolder, type: 'output'}), meta: null}));
+      fromFolder = true;
+    }
+  } catch (e) {}
+  if (!entries) {
+    entries = local;
+    const known = new Set(entries.map(e => e.url));
+    try {                                             // plus what ComfyUI remembers since its last start
+      const h = await api('/history?max_items=500');
+      for (const item of Object.values(h || {})) {
+        const msgs = (item.status && item.status.messages) || [];
+        const start = msgs.find(m => m[0] === 'execution_start') || msgs[0];
+        const t = start && start[1] && start[1].timestamp;
+        if (!t) continue;
+        let meta = {'Source': 'ComfyUI history'};
+        try { Object.assign(meta, metaFromGraph(item.prompt[2])); } catch (e) {}
+        for (const o of Object.values(item.outputs || {})) for (const im of o.images || []) {
+          if ((im.type || 'output') !== 'output') continue;
+          const url = viewUrl(base(), im);
+          if (!known.has(url)) { known.add(url); entries.push({t, url, meta}); }
+        }
+      }
+      note = 'Showing images generated from this browser and since ComfyUI was last started. Install the fooocus-ui folder into custom_nodes to list the whole output folder.';
+    } catch (e) { note = 'ComfyUI is not reachable — showing only images generated from this browser.'; }
+  }
+  entries.sort((a, b) => b.t - a.t);
+  const days = [...new Set(entries.map(e => dayOf(e.t)))];
+  const today = dayOf(Date.now());
+  if (!days.includes(today)) days.unshift(today);
+  const sel = el('select', {style: 'width:auto'}), list = el('div'), count = el('span', {style: 'color:var(--dim)'});
+  fillSelect(sel, days, today);
+  const draw = async () => {
+    const day = sel.value, items = entries.filter(e => dayOf(e.t) === day);
+    count.textContent = `${items.length} image${items.length === 1 ? '' : 's'}`;
+    if (fromFolder && items.some(e => !e.meta)) {     // parameters are read from the files of that day
+      list.innerHTML = ''; list.append(el('div', {textContent: 'Loading …', style: 'color:var(--dim);padding:20px 0'}));
+      try {
+        const [y, m, d] = day.split('-').map(Number), from = new Date(y, m - 1, d).getTime();
+        const r = await fetch(`${base()}/fooocus/history?from=${from}&to=${from + 86400000}`);
+        const byUrl = new Map((await r.json()).items.map(i => [viewUrl(base(), {filename: i.filename, subfolder: i.subfolder, type: 'output'}), i.chunks || {}]));
+        for (const e of items) { let m = null; try { m = metaFromChunks(byUrl.get(e.url) || {}); } catch (err) {} e.meta = m || localMeta.get(e.url) || {}; }
+      } catch (err) { for (const e of items) e.meta = e.meta || localMeta.get(e.url) || {}; }
+      if (sel.value !== day) return;
+    }
+    list.innerHTML = '';
+    if (!items.length) list.append(el('div', {textContent: 'Nothing generated on this day yet.', style: 'color:var(--dim);padding:20px 0'}));
+    for (const e of items) {
+      const table = el('table');
+      const rows = Object.assign({'Time': new Date(e.t).toLocaleTimeString()}, e.meta);
+      for (const [k, v] of Object.entries(rows)) if (v !== '' && v != null) table.append(el('tr', null, el('td', {textContent: k}), el('td', {textContent: String(v)})));
+      const img = el('img', {src: e.url, loading: 'lazy'});
+      list.append(el('div', {className: 'hrow block'}, el('a', {href: e.url, target: '_blank', style: 'display:contents'}, img), table));
+    }
+  };
+  sel.onchange = draw;
+  root.append(el('h2', {textContent: 'Fooocus Log'}), el('div', {className: 'row', style: 'margin-bottom:16px'}, sel, count));
+  if (note) root.append(el('div', {className: 'note', textContent: note, style: 'margin:0 0 12px'}));
+  root.append(list);
+  draw();
+}
+
+// ---------- wiring ----------
+function readJsonFile(file) { return file.text().then(t => JSON.parse(t)); }
+function init() {
+  currentWf();
+  $('#prompt').value = state.prompt;
+  $('#prompt').oninput = e => { state.prompt = e.target.value; save(); };
+  $('#prompt').onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); generate(); } };
+  $('#negative').oninput = e => { state.negative = e.target.value; save(); };
+  $('#generate').onclick = generate; $('#skip').onclick = skip; $('#stop').onclick = stop;
+  $('#advanced').checked = state.advanced;
+  document.body.classList.toggle('simple', !state.advanced);
+  $('#advanced').onchange = e => { state.advanced = e.target.checked; document.body.classList.toggle('simple', !state.advanced); save(); };
+  $('#random').onchange = e => { state.random = e.target.checked; $('#seed-box').hidden = state.random; save(); };
+  $('#seed').onchange = e => { state.seed = e.target.value.replace(/\D/g, '') || '0'; e.target.value = state.seed; save(); };
+  $('#history-link').href = location.href.split('#')[0] + '#history';
+  $('#history-link').onclick = () => lsSet(LS_KEY, state);
+  document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+  $('#style-search').oninput = renderStyleTab;
+  $('#style-file').onchange = async e => {
+    try {
+      for (const f of e.target.files) {
+        const arr = await readJsonFile(f);
+        if (!Array.isArray(arr)) throw new Error(f.name + ': expected a list of styles.');
+        for (const s of arr) if (s && s.name) {
+          const name = normalizeStyleName(s.name);
+          state.userStyles = state.userStyles.filter(u => u.name !== name);
+          state.userStyles.push({name, prompt: s.prompt || '', negative_prompt: s.negative_prompt || ''});
+        }
+      }
+      showMsg('');
+    } catch (err) { showMsg('Could not load styles: ' + err.message); }
+    e.target.value = ''; save(); renderStyleTab();
+  };
+  $('#workflow').onchange = e => { state.workflow = e.target.value; save(); renderStyleTab(); renderModelTab(); renderAdvTab(); renderInputPanel(); };
+  $('#wf-file').onchange = async e => {
+    const f = e.target.files[0]; e.target.value = '';
+    if (!f) return;
+    try {
+      const wf = await readJsonFile(f);
+      analyze(wf);
+      let name = f.name.replace(/\.json$/i, '');
+      if (name in TEMPLATES) name += ' (custom)';
+      state.customWfs[name] = wf; delete state.perWf[name]; state.workflow = name;
+      showMsg(''); save(); renderStyleTab(); renderModelTab(); renderAdvTab();
+    } catch (err) { showMsg('Could not import workflow: ' + err.message); }
+  };
+  $('#refresh').onclick = connect;
+  $('#sampler').onchange = e => { wfState().sampler = e.target.value; save(); };
+  $('#scheduler').onchange = e => { wfState().scheduler = e.target.value; save(); };
+  $('#server').onchange = e => { state.server = e.target.value.trim(); state.serverSet = true; save(); };
+  $('#connect').onclick = () => { state.server = $('#server').value.trim(); state.serverSet = true; save(); connect(); };
+  $('#input-image').onchange = e => { state.inputImage = e.target.checked; save(); renderInputPanel(); };
+  document.querySelectorAll('#itabs button').forEach(b => b.onclick = () => { state.itab = b.dataset.itab; save(); renderInputPanel(); });
+  $('#upscaler').onchange = e => { state.upscaler = e.target.value; save(); };
+  $('#inp-adv').onchange = e => { state.inpaint.advanced = e.target.checked; save(); renderInputPanel(); if (slots.inp && slots.inp.redraw) slots.inp.redraw(); };
+  $('#inp-method').onchange = e => {
+    const o = state.inpaint; o.method = e.target.value;
+    o.denoise = INPAINT_METHODS[o.method][1]; o.field = INPAINT_METHODS[o.method][2];
+    save(); renderInputPanel();
+  };
+  $('#inp-extra').oninput = e => { state.inpaint.extra = e.target.value; save(); };
+  $('#mask-prompt').oninput = e => { state.inpaint.maskPrompt = e.target.value; save(); };
+  $('#mask-prompt').onkeydown = e => { if (e.key === 'Enter') autoMask(); };
+  $('#mask-gen').onclick = autoMask;
+  $('#inp-engine').onchange = e => { wfState().engine = e.target.checked; save(); };
+  $('#inp-invert').onchange = e => { state.inpaint.invert = e.target.checked; save(); };
+  $('#inp-undo').onclick = () => { const s = slots.inp; if (s && s.strokes.length) { s.strokes.pop(); s.redraw(); } };
+  $('#inp-clear').onclick = () => { const s = slots.inp; if (s) { s.strokes.length = 0; s.redraw(); } };
+  makeDrop($('#uov-drop'), 'uov');
+  makeDrop($('#inp-drop'), 'inp', s => { $('#inp-tools').hidden = !s; });
+  drops.mask = makeDrop($('#mask-drop'), 'mask', () => { if (slots.inp && slots.inp.redraw) slots.inp.redraw(); });
+  const setTool = e => { eraser = e; $('#tool-brush').classList.toggle('on', !e); $('#tool-eraser').classList.toggle('on', e); };
+  $('#tool-brush').onclick = () => setTool(false);
+  $('#tool-eraser').onclick = () => setTool(true);
+  makeDrop($('#meta-drop'), 'meta', async s => {
+    if (s) try { s.meta = metaFromChunks(parsePngText(await s.file.arrayBuffer())); } catch (e) { s.meta = null; }
+    renderMetaBox();
+  });
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('drop', e => e.preventDefault());
+  renderAll(); showTab(state.tab);
+  setupAreas();
+  (async () => {
+    if (!state.serverSet) { const u = await findServer(); if (u) { state.server = u; $('#server').value = u; save(); } }
+    await connect();
+    if (!serverStyles && !fooocusStyles) fetchFooocusStyles();
+  })();
+}
+if (location.hash === '#history') renderHistory(); else init();
+</script>
+</body>
+</html>
