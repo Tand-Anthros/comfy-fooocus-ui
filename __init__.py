@@ -11,12 +11,16 @@ Adds no nodes. It makes ComfyUI hand out the page and gives the page what a brow
   /fooocus                  the page (no CORS flag or extra web server needed)
   /fooocus/styles.json      all styles from  styles/*.json  in this folder (Fooocus format: name, prompt, negative_prompt)
   /fooocus/samples/<file>   style preview pictures from  styles/samples/
-  /fooocus/history          every image in the ComfyUI output folder, so the History Log survives restarts
+  /fooocus/history          every image in the ComfyUI output folder with its parameters (History Log); delete one image
+  /fooocus/thumb            a small preview of an output image
+  /fooocus/tags             booru tag list from  tags/*.csv|*.txt  plus the personal dictionary (tag correctness check)
 """
 import asyncio
+import io
 import json
 import logging
 import os
+import urllib.request
 
 from aiohttp import web
 
@@ -26,19 +30,41 @@ from server import PromptServer
 _DIR = os.path.dirname(os.path.abspath(__file__))
 _PAGE = os.path.join(_DIR, "fooocus-comfy.html")
 _STYLES = os.path.join(_DIR, "styles")
+_TAGS = os.path.join(_DIR, "tags")
 _IMAGE_EXT = (".png", ".jpg", ".jpeg", ".webp")
 # same order as Fooocus; any other *.json files follow alphabetically
 _FIRST = ["sdxl_styles_fooocus.json", "sdxl_styles_sai.json", "sdxl_styles_mre.json",
           "sdxl_styles_twri.json", "sdxl_styles_diva.json", "sdxl_styles_marc_k3nt3l.json"]
 
+# Tag correctness check: the list offered for download, and the personal dictionary ("patch") in the ComfyUI folder.
+_TAGS_URL = "https://raw.githubusercontent.com/DominikDoom/a1111-sd-webui-tagcomplete/main/tags/danbooru.csv"
+_PATCH = os.path.join(getattr(folder_paths, "base_path", os.getcwd()), "fooocus-ui-tags.json")
+# quality and rating words that anime models are trained with but that are not booru tags
+_PATCH_DEFAULT = {"add": ["masterpiece", "best_quality", "good_quality", "normal_quality", "low_quality", "worst_quality",
+                          "very_aesthetic", "aesthetic", "displeasing", "very_displeasing",
+                          "newest", "recent", "mid", "early", "old",
+                          "safe", "sensitive", "nsfw", "explicit", "general", "questionable"],
+                  "remove": []}
+
 routes = PromptServer.instance.routes
 
+
+def _run(fn, *args):
+    return asyncio.get_running_loop().run_in_executor(None, fn, *args)
+
+
+# ---------------------------------------------------------------- page and styles
 
 @routes.get("/fooocus")
 async def fooocus_page(request):
     if not os.path.isfile(_PAGE):
         return web.Response(status=404, text="fooocus-comfy.html is missing next to this __init__.py")
     return web.FileResponse(_PAGE, headers={"Cache-Control": "no-cache"})
+
+
+@routes.get("/fooocus/ping")
+async def fooocus_ping(request):
+    return web.json_response({"ok": True})
 
 
 @routes.get("/fooocus/styles.json")
@@ -69,20 +95,82 @@ async def fooocus_sample(request):
     return web.FileResponse(path, headers={"Cache-Control": "max-age=86400"})
 
 
-def _text_chunks(path):
-    """Generation parameters stored in the image file (PNG text chunks)."""
+# ---------------------------------------------------------------- history
+
+_TEXT_KEYS = ("text", "text_g", "text_l", "prompt")
+_META_CACHE = {}  # path -> (mtime_ns, size, entry); parameters are read from each file only once
+
+
+def _is_link(v):
+    return isinstance(v, list) and len(v) == 2 and isinstance(v[1], int)
+
+
+def _trace(graph, link, via, test):
+    """Follow a link upstream through the inputs named in `via` until a node passes `test`."""
+    seen = set()
+    while _is_link(link):
+        node_id = str(link[0])
+        if node_id in seen or not isinstance(graph.get(node_id), dict):
+            return None
+        seen.add(node_id)
+        inputs = graph[node_id].get("inputs") or {}
+        if test(inputs):
+            return node_id
+        link = next((inputs[k] for k in via if _is_link(inputs.get(k))), None)
+    return None
+
+
+def _meta_from_graph(graph):
+    """Prompt and sampler settings from a ComfyUI API graph (images not made by this UI)."""
+    nodes = {k: v for k, v in graph.items() if isinstance(v, dict) and isinstance(v.get("inputs"), dict)}
+    sampler = next((n["inputs"] for n in nodes.values() if n.get("class_type") in ("KSampler", "KSamplerAdvanced")), None)
+    if sampler is None:
+        return {}
+
+    def text_of(key):
+        node_id = _trace(nodes, sampler.get(key), ("conditioning", key, "conditioning_1", "conditioning_to"),
+                         lambda inputs: any(k in inputs for k in _TEXT_KEYS))
+        if node_id is None:
+            return None, None
+        return node_id, next((nodes[node_id]["inputs"][k] for k in _TEXT_KEYS if isinstance(nodes[node_id]["inputs"].get(k), str)), "")
+
+    pos_id, pos = text_of("positive")
+    neg_id, neg = text_of("negative")
+    files = lambda key: ", ".join(n["inputs"][key] for n in nodes.values() if isinstance(n["inputs"].get(key), str))
+    seed = sampler.get("seed", sampler.get("noise_seed"))
+    meta = {"Source": "ComfyUI", "Prompt": pos, "Negative Prompt": None if neg_id == pos_id else neg,
+            "Steps": sampler.get("steps"), "Guidance Scale": sampler.get("cfg"), "Sampler": sampler.get("sampler_name"),
+            "Scheduler": sampler.get("scheduler"), "Seed": str(seed) if isinstance(seed, int) else None,
+            "Base Model": files("ckpt_name") or files("unet_name"), "LoRAs": files("lora_name")}
+    return {k: v for k, v in meta.items() if isinstance(v, (str, int, float)) and v != ""}
+
+
+def _read_meta(path):
+    """Parameters stored in the image file. Returns ("meta", dict) or ("chunks", {"parameters": text}) or None."""
     try:
         from PIL import Image
         with Image.open(path) as im:
             info = dict(im.info)
-        return {k: info[k] for k in ("fooocus", "prompt", "parameters") if isinstance(info.get(k), str)}
     except Exception:
-        return {}
+        return None
+    for key in ("fooocus", "prompt"):
+        if isinstance(info.get(key), str):
+            try:
+                data = json.loads(info[key])
+            except ValueError:
+                continue
+            if isinstance(data, dict):
+                meta = data if key == "fooocus" else _meta_from_graph(data)
+                if meta:
+                    return "meta", meta
+    if isinstance(info.get("parameters"), str):
+        return "chunks", {"parameters": info["parameters"]}
+    return None
 
 
-def _scan_output(t_from, t_to):
+def _scan_output():
     out_dir = folder_paths.get_output_directory()
-    items = []
+    items, alive = [], set()
     for root, dirs, files in os.walk(out_dir):
         dirs[:] = [d for d in dirs if not d.startswith(".")]
         for name in files:
@@ -90,30 +178,193 @@ def _scan_output(t_from, t_to):
                 continue
             path = os.path.join(root, name)
             try:
-                t = int(os.path.getmtime(path) * 1000)
+                st = os.stat(path)
             except OSError:
                 continue
-            if t_from is not None and not (t_from <= t < t_to):
-                continue
-            sub = os.path.relpath(root, out_dir).replace("\\", "/")
-            item = {"filename": name, "subfolder": "" if sub == "." else sub, "t": t}
-            if t_from is not None:
-                item["chunks"] = _text_chunks(path)
-            items.append(item)
+            alive.add(path)
+            cached = _META_CACHE.get(path)
+            if cached is None or cached[0] != st.st_mtime_ns or cached[1] != st.st_size:
+                sub = os.path.relpath(root, out_dir).replace("\\", "/")
+                entry = {"filename": name, "subfolder": "" if sub == "." else sub, "t": int(st.st_mtime * 1000)}
+                found = _read_meta(path)
+                if found:
+                    entry[found[0]] = found[1]
+                cached = _META_CACHE[path] = (st.st_mtime_ns, st.st_size, entry)
+            items.append(cached[2])
+    for path in set(_META_CACHE) - alive:
+        del _META_CACHE[path]
     return items
+
+
+def _output_image(subfolder, filename):
+    """Full path of an image inside the output folder, or None when the name points anywhere else."""
+    out_dir = os.path.realpath(folder_paths.get_output_directory())
+    path = os.path.realpath(os.path.join(out_dir, str(subfolder or ""), str(filename)))
+    try:
+        inside = os.path.commonpath([out_dir, path]) == out_dir and path != out_dir
+    except ValueError:  # different drives on Windows
+        inside = False
+    return path if inside and path.lower().endswith(_IMAGE_EXT) else None
+
+
+_THUMBS = {}  # (path, mtime_ns, size) -> JPEG bytes, oldest dropped first
+_THUMBS_MAX = 400
+
+
+def _make_thumb(path, size):
+    key = (path, os.stat(path).st_mtime_ns, size)
+    data = _THUMBS.get(key)
+    if data is None:
+        from PIL import Image
+        with Image.open(path) as im:
+            im = im.convert("RGB")
+            im.thumbnail((size, size))
+            buf = io.BytesIO()
+            im.save(buf, "JPEG", quality=85)
+        data = _THUMBS[key] = buf.getvalue()
+        while len(_THUMBS) > _THUMBS_MAX:
+            del _THUMBS[next(iter(_THUMBS))]
+    return data
+
+
+@routes.get("/fooocus/thumb")
+async def fooocus_thumb(request):
+    """Small JPEG preview of an output image: ?filename=...&subfolder=...&size=<longest side, 64-1024>"""
+    path = _output_image(request.query.get("subfolder", ""), request.query.get("filename", ""))
+    if path is None or not os.path.isfile(path):
+        return web.Response(status=404)
+    try:
+        size = max(64, min(1024, int(request.query.get("size", "640"))))
+        data = await _run(_make_thumb, path, size)
+    except Exception as exc:
+        logging.warning("[fooocus-ui] cannot make a preview of %s: %s", path, exc)
+        return web.Response(status=500)
+    return web.Response(body=data, content_type="image/jpeg", headers={"Cache-Control": "max-age=86400"})
 
 
 @routes.get("/fooocus/history")
 async def fooocus_history(request):
-    """Without parameters: every output image (name, subfolder, time in ms).
-    With ?from=<ms>&to=<ms>: only that time range, with the parameters stored in each file."""
+    """Every image in the output folder: name, subfolder, time (ms) and the parameters stored in the file."""
+    return web.json_response({"items": await _run(_scan_output)})
+
+
+@routes.post("/fooocus/history/delete")
+async def fooocus_history_delete(request):
+    """Delete one image file from the output folder. Body: {"filename": ..., "subfolder": ...}"""
     try:
-        t_from = int(request.query["from"]) if "from" in request.query else None
-        t_to = int(request.query.get("to", "0")) if t_from is not None else None
-    except ValueError:
-        return web.json_response({"error": "from/to must be numbers"}, status=400)
-    items = await asyncio.get_running_loop().run_in_executor(None, _scan_output, t_from, t_to)
-    return web.json_response({"items": items})
+        body = await request.json()
+        filename, subfolder = str(body["filename"]), str(body.get("subfolder") or "")
+    except Exception:
+        return web.json_response({"error": "expected JSON with filename and subfolder"}, status=400)
+    path = _output_image(subfolder, filename)
+    if path is None:
+        return web.json_response({"error": "not an image in the output folder"}, status=400)
+    if not os.path.isfile(path):
+        return web.json_response({"error": "file not found"}, status=404)
+    try:
+        os.remove(path)
+    except OSError as exc:
+        return web.json_response({"error": str(exc)}, status=500)
+    return web.json_response({"deleted": filename})
+
+
+# ---------------------------------------------------------------- tag correctness check
+
+_TAG_CACHE = {"key": None, "tags": []}
+
+
+def _norm_tag(tag):
+    return "_".join(str(tag).lower().replace("\\(", "(").replace("\\)", ")").replace("_", " ").split())
+
+
+def _load_tags():
+    """All tags from tags/*.csv (first column) and tags/*.txt (one per line), re-read only when the files change."""
+    files = sorted(f for f in os.listdir(_TAGS) if f.lower().endswith((".csv", ".txt"))) if os.path.isdir(_TAGS) else []
+    key = tuple((f, os.path.getmtime(os.path.join(_TAGS, f))) for f in files)
+    if key != _TAG_CACHE["key"]:
+        tags = set()
+        for name in files:
+            try:
+                with open(os.path.join(_TAGS, name), encoding="utf-8", errors="replace") as fh:
+                    for line in fh:
+                        tag = _norm_tag(line.split(",", 1)[0].strip().strip('"'))
+                        if tag:
+                            tags.add(tag)
+            except OSError as exc:
+                logging.warning("[fooocus-ui] cannot read tag file %s: %s", name, exc)
+        _TAG_CACHE.update(key=key, tags=sorted(tags))
+    return _TAG_CACHE["tags"]
+
+
+def _read_patch():
+    """The personal dictionary; the file is created with a few common quality words when it does not exist."""
+    try:
+        with open(_PATCH, encoding="utf-8") as fh:
+            data = json.load(fh)
+        return {"add": [str(t) for t in data.get("add", [])], "remove": [str(t) for t in data.get("remove", [])]}
+    except FileNotFoundError:
+        _write_patch(_PATCH_DEFAULT)
+        return {k: list(v) for k, v in _PATCH_DEFAULT.items()}
+    except Exception as exc:
+        logging.warning("[fooocus-ui] cannot read %s: %s", _PATCH, exc)
+        return {"add": [], "remove": []}
+
+
+def _write_patch(patch):
+    with open(_PATCH, "w", encoding="utf-8") as fh:
+        json.dump(patch, fh, ensure_ascii=False, indent=1)
+
+
+def _tags_payload():
+    tags = _load_tags()
+    return {"tags": "\n".join(tags), "count": len(tags), "patch": _read_patch(), "patch_file": _PATCH}
+
+
+@routes.get("/fooocus/tags")
+async def fooocus_tags(request):
+    return web.json_response(await _run(_tags_payload))
+
+
+@routes.post("/fooocus/tags/patch")
+async def fooocus_tags_patch(request):
+    """Body: {"action": "add" | "remove", "tag": ...}. "add" makes a tag known, "remove" makes it unknown."""
+    try:
+        body = await request.json()
+        action, tag = body["action"], _norm_tag(body["tag"])
+    except Exception:
+        return web.json_response({"error": "expected JSON with action and tag"}, status=400)
+    if action not in ("add", "remove") or not tag:
+        return web.json_response({"error": "action must be add or remove, tag must not be empty"}, status=400)
+    patch = _read_patch()
+    here, other = (patch["add"], patch["remove"]) if action == "add" else (patch["remove"], patch["add"])
+    if tag in other:
+        other.remove(tag)
+    if tag not in here:
+        here.append(tag)
+    try:
+        _write_patch(patch)
+    except OSError as exc:
+        return web.json_response({"error": f"cannot write {_PATCH}: {exc}"}, status=500)
+    return web.json_response({"patch": patch, "patch_file": _PATCH})
+
+
+def _download_tags():
+    os.makedirs(_TAGS, exist_ok=True)
+    with urllib.request.urlopen(_TAGS_URL, timeout=120) as resp:
+        data = resp.read()
+    with open(os.path.join(_TAGS, "danbooru.csv"), "wb") as fh:
+        fh.write(data)
+    return len(_load_tags())
+
+
+@routes.post("/fooocus/tags/download")
+async def fooocus_tags_download(request):
+    """Fetch the Danbooru tag list (from the a1111-sd-webui-tagcomplete project) into tags/danbooru.csv."""
+    try:
+        count = await _run(_download_tags)
+    except Exception as exc:
+        return web.json_response({"error": f"download failed: {exc}"}, status=502)
+    return web.json_response({"count": count})
 
 
 NODE_CLASS_MAPPINGS = {}
