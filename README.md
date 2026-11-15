@@ -9,8 +9,6 @@ It adds **no nodes** and has **no dependencies**. After installing, open:
 http://127.0.0.1:8188/fooocus
 ```
 
-![example screen](example.png)
-
 ## What it does
 
 - **Text to image** — prompt, negative prompt, performance presets (or a custom step count), the Fooocus aspect
@@ -20,10 +18,12 @@ http://127.0.0.1:8188/fooocus
 - **Workflows** — built-in SDXL and Anima workflows, or import your own (API format).
 - **Input Image**
   - *Upscale or Variation* — Vary (Subtle / Strong), Upscale 1.5x / 2x with an upscale model, Fast 2x.
-  - *Inpaint or Outpaint* — paint a mask (brush, eraser, undo), three methods, outpaint in four directions,
+  - *Inpaint or Outpaint* — paint a mask (brush, eraser, undo, zoom), three methods, outpaint in four directions,
     mask upload, invert, erode / dilate. The masked region is cropped, redrawn at about 1 MP and pasted back.
   - *Metadata* — reads parameters from PNG files (this UI, ComfyUI, Fooocus, A1111) and applies them.
-- **History Log** — every image in the ComfyUI output folder, by day, with its parameters.
+- **History Log** — every image in the ComfyUI output folder with its parameters: search, pages of 100, delete.
+- **Image viewer** — zoom, pan, previous / next, thumbnails.
+- **Tag correctness check** — underlines prompt tags that are not booru tags.
 - Works on phones (portrait layout).
 
 ## Install
@@ -63,6 +63,64 @@ LoRA files with **`turbo`** in the name are treated as speed LoRAs: they are hid
 offered as the *Turbo LoRA* at the bottom of the Models tab. It is chosen once per workflow and added automatically
 when Performance is *Extreme Speed* (8 steps, CFG 1) or *Lightning* (4 steps, CFG 1).
 
+## Inpaint shortcuts
+
+They work while the pointer is over the picture, or after clicking inside the Inpaint tab.
+
+| Key | Action |
+|---|---|
+| `E` / `Q` | Brush / Eraser |
+| `Ctrl+Z` | Undo the last stroke |
+| `Ctrl+Del` | Clear the mask |
+| `Ctrl` + mouse wheel, `Ctrl` + `+` / `-` | Zoom (`Ctrl+0` resets) |
+| hold `Space` and drag, or the *Move* tool | Move the zoomed picture |
+
+## Image viewer
+
+Click a picture in the gallery or in the History Log.
+
+- Double click (double tap) zooms in; again zooms back out. `Ctrl` + mouse wheel and `Ctrl` + `+` / `-` zoom
+  only the picture, not the page. On a phone, pinch.
+- Drag to move around a zoomed picture.
+- Click the left or right edge (or use the arrow keys, or swipe) for the previous / next picture.
+- At 100 % a strip of thumbnails is shown at the bottom. `Esc` closes.
+
+## History Log
+
+- 100 images per page. Pages are numbered from the oldest: page 1 always holds the oldest hundred and never
+  changes, the highest number is the newest and is the one that fills up. The links are listed newest first.
+- The search box filters by any text in the parameters (prompt, LoRA, model, seed, date, file name); letter case
+  does not matter.
+- *Del* on a card shows a tick next to it; pressing the tick deletes the image file from the output folder for good.
+
+## Tag correctness check
+
+Advanced tab → *Tag correctness check*. Tags in the prompt boxes that are not in the booru tag list get a red
+underline. It needs this extension installed (it does not work with the page opened as a file).
+
+**Tag list.** Any `.csv` (first column) or `.txt` (one tag per line) file in the `tags` folder of the extension.
+If the folder is empty, the *Download Danbooru tag list* button fetches `danbooru.csv` from the
+[a1111-sd-webui-tagcomplete](https://github.com/DominikDoom/a1111-sd-webui-tagcomplete) project into it.
+
+**Your dictionary.** *Add to dictionary* makes a word count as a valid tag, *Remove from dictionary* makes it
+count as unknown. Both are saved on the server in `fooocus-ui-tags.json` in the ComfyUI folder — a small patch
+file with an `add` and a `remove` list, created when missing with a few common quality and rating words
+(`masterpiece`, `best quality`, …). You can edit it by hand.
+
+**What is checked.** The prompt is split at commas and line breaks. Spaces and underscores are the same, letter
+case is ignored.
+
+**What is not checked** (so natural language can be mixed with tags, as Anima allows):
+
+- A sentence: text that starts with a capital letter, up to the next period on the same line.
+  `1girl, She is standing in a field, looking at the sky. long hair` — only `1girl` and `long hair` are checked.
+  Without a period it is treated as a tag, so `Hatsune Miku` is still checked.
+- A comment in parentheses after a tag: in `long hair (down to the floor)` only `long hair` is checked.
+  Real tags with parentheses such as `artoria pendragon (fate)` are recognised as a whole.
+- `<lora:...>`, `__wildcards__`, `BREAK` and plain numbers.
+
+Emphasis is unwrapped first: `(tag:1.2)`, `((tag))` and `(tag a, tag b:1.1)` are checked as their tags.
+
 ## Your own workflows
 
 Models tab → *Import workflow (API JSON)*. Export it from ComfyUI with *Workflow → Export (API)*. The workflow needs
@@ -81,8 +139,9 @@ Everything above works on a plain ComfyUI. These are detected automatically and 
 ## Using the page without installing
 
 `fooocus-comfy.html` also works opened directly as a file. ComfyUI must then be started with
-`--enable-cors-header`, and the address is set on the Advanced tab. In this mode styles come from GitHub and the
-History Log only knows images made from that browser and since ComfyUI was last started.
+`--enable-cors-header`, and the address is set on the Advanced tab. In this mode styles come from GitHub, the
+History Log only knows images made from that browser and since ComfyUI was last started (no delete), and the tag
+check is not available.
 
 ## Limitations
 
