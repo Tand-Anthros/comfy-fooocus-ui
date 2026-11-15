@@ -61,7 +61,11 @@ input[type=range]{accent-color:var(--slider);width:100%;margin:8px 0 0;display:b
 #thumbs img{height:84px;border-radius:6px;border:2px solid transparent;cursor:pointer;flex:none}
 #thumbs img.sel{border-color:var(--slider)}
 #prompt-row{display:flex;gap:16px;align-items:stretch}
-.area{flex:1;min-width:0}
+.area{flex:1;min-width:0;position:relative}
+.area textarea{position:relative;z-index:1;background:transparent}
+.hl{position:absolute;top:0;left:0;z-index:0;pointer-events:none;overflow:hidden;white-space:pre-wrap;overflow-wrap:break-word;color:transparent;
+  background:var(--block);border:1px solid transparent;border-radius:var(--radius);padding:9px 12px}
+.hl .bad{text-decoration:underline;text-decoration-color:rgba(248,113,113,.8);text-decoration-thickness:2px;text-underline-offset:3px}
 .grip{display:none;height:16px;touch-action:none;cursor:ns-resize}
 .grip::after{content:"";display:block;width:48px;height:4px;border-radius:2px;background:var(--border2);margin:6px auto 0}
 @media (pointer:coarse){.grip{display:block}}
@@ -108,7 +112,7 @@ details>summary::after{content:"◀";font-size:12px}
 details[open]>summary::after{content:"▼"}
 details[open]>summary{margin-bottom:12px}
 #style-list{max-height:62vh;overflow:auto;margin-top:12px;padding-right:6px}
-#style-list label{font-weight:600;align-items:center}
+#style-list label{font-weight:600;align-items:center;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 #style-preview{position:fixed;z-index:50;width:200px;height:200px;object-fit:cover;border-radius:var(--radius);border:1px solid var(--border2);pointer-events:none;box-shadow:0 8px 24px #000a;background:var(--block)}
 .lora{display:grid;grid-template-columns:52px 1fr 1fr}
 .lora>div{padding:10px 12px;min-width:0}
@@ -130,10 +134,15 @@ details[open]>summary{margin-bottom:12px}
 .drop .ph span{color:var(--dim)}
 .drop>img{max-width:100%;max-height:420px;display:block}
 .drop .x{position:absolute;top:6px;right:6px;width:26px;height:26px;padding:0;border-radius:50%;font-size:12px;z-index:2}
-.paint{position:relative;display:inline-block;line-height:0;touch-action:none;user-select:none}
-.paint img{max-width:100%;max-height:70vh;display:block}
+.paint{position:relative;display:inline-block;vertical-align:top;line-height:0;touch-action:none;user-select:none;overflow:hidden}
+#inp-drop.has-img{display:block;overflow:auto;max-height:84vh;cursor:default}
+.zoom{display:flex;align-items:center;gap:4px;margin-left:auto}
+.zoom span{min-width:72px;text-align:center;white-space:nowrap}
+.zoom button{width:30px;padding:5px 0}
+.paint img{display:block;max-width:none}
 .paint canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.6;cursor:none}
 .ring{position:absolute;border:1.5px solid #fff;outline:1px solid #000;border-radius:50%;pointer-events:none}
+.ring.erase{border:2px dashed #fff;outline:0;box-shadow:0 0 0 1px #0009}
 .tools button.on{border-color:var(--slider);box-shadow:0 0 0 1px var(--slider)}
 .tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .tools input[type=range]{margin:0;width:180px}
@@ -144,10 +153,32 @@ details[open]>summary{margin-bottom:12px}
 
 /* history page */
 #history{max-width:1100px;margin:0 auto;padding:20px}
+#history .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+#history .bar input{max-width:360px}
+#history .bar h2{margin:0}
+#history .bar select{width:auto}
+#history .pager{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:baseline;margin-bottom:14px}
+#history .pager span{color:var(--dim)}
+#history .pager a{color:#60a5fa;text-decoration:underline;cursor:pointer}
+#history .pager a.on{color:#c084fc}
+#history .side{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+#history .hrow img{cursor:zoom-in}
+/* image viewer */
+#lb{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.94);display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
+#lb-stage{flex:1;position:relative;overflow:hidden;touch-action:none;cursor:grab}
+#lb-stage img{position:absolute;left:50%;top:50%;max-width:100%;max-height:100%;transform-origin:center;-webkit-user-drag:none}
+.lb-nav{position:absolute;top:0;bottom:0;width:12%;min-width:44px;z-index:2;background:none;border:0;border-radius:0;font-size:34px;font-weight:400;color:#fff7}
+.lb-nav:hover{background:#ffffff0f;color:#fff}
+#lb-prev{left:0} #lb-next{right:0}
+#lb-close{position:absolute;top:10px;right:10px;z-index:3;width:36px;height:36px;padding:0;border-radius:50%}
+#lb-info{position:absolute;top:14px;left:14px;z-index:3;color:#fffb;font-size:13px;pointer-events:none}
+#lb-thumbs{display:flex;gap:6px;justify-content:center;overflow:hidden;padding:8px;height:92px;flex:none}
+#lb-thumbs img{height:72px;border-radius:4px;border:2px solid transparent;cursor:pointer;flex:none}
+#lb-thumbs img.sel{border-color:var(--slider)}
 #history h2{margin:0 0 12px}
 #history .hrow{display:flex;gap:16px;padding:14px;margin-bottom:12px}
-#history .hrow img{width:320px;max-width:40%;height:auto;align-self:flex-start;border-radius:6px}
-#history table{border-collapse:collapse;flex:1;font-size:13px;align-self:flex-start}
+#history .hrow>img{width:320px;max-width:40%;height:auto;align-self:flex-start;border-radius:6px}
+#history table{border-collapse:collapse;width:100%;font-size:13px}
 #history td{border:1px solid var(--border);padding:5px 8px;vertical-align:top;word-break:break-word}
 #history td:first-child{color:var(--dim);white-space:nowrap;width:140px}
 
@@ -197,8 +228,9 @@ details[open]>summary{margin-bottom:12px}
         <div class="drop tall" id="inp-drop"></div>
         <div class="tools" id="inp-tools" hidden>
           <span>Brush size</span><input type="range" id="brush" min="4" max="200" value="40">
-          <button class="small on" id="tool-brush">Brush</button><button class="small" id="tool-eraser">Eraser</button>
-          <button class="small" id="inp-undo">Undo</button><button class="small" id="inp-clear">Clear mask</button>
+          <button class="small on" id="tool-brush" title="Brush (E)">Brush</button><button class="small" id="tool-eraser" title="Eraser (Q)">Eraser</button>
+          <button class="small" id="inp-undo" title="Undo the last stroke (Ctrl+Z)">Undo</button><button class="small" id="inp-clear" title="Clear the mask (Ctrl+Del)">Clear mask</button>
+          <span class="zoom" title="Zoom: Ctrl + mouse wheel, Ctrl + plus / minus, Ctrl + 0 to reset. Move: hold Space and drag, or two fingers."><button class="small" id="zoom-out" title="Zoom out (Ctrl + minus)">−</button><span id="zoom-val">🔍 100%</span><button class="small" id="zoom-in" title="Zoom in (Ctrl + plus)">+</button></span>
         </div>
         <div class="form">
           <div class="field"><div class="row"><label><input type="checkbox" id="inp-adv"> Enable Advanced Masking Features</label></div></div>
@@ -271,6 +303,7 @@ details[open]>summary{margin-bottom:12px}
         <div class="field"><span class="lbl">Scheduler</span><select id="scheduler"></select></div>
         <div class="field" id="clip-skip"></div>
       </div>
+      <div class="form"><div class="field" id="tag-box"></div></div>
       <div class="form"><div class="field"><span class="lbl">ComfyUI address</span><div class="row" style="flex-wrap:nowrap"><input type="text" id="server"><button class="small" id="connect">Connect</button></div></div></div>
     </div>
   </div>
@@ -598,6 +631,55 @@ function inpaintRegion(bx0, by0, bx1, by1, W, H, field) {
   const w = x1 - x0, h = y1 - y0, k = Math.sqrt(1024 * 1024 / (w * h)), r16 = v => Math.max(256, Math.round(v / 16) * 16);
   return {crop: {x: x0, y: y0, w, h}, work: {w: r16(w * k), h: r16(h * k)}};
 }
+
+// ---------- prompt tag check ----------
+// Returns [start, end] ranges of tags that `known(normalizedTag)` does not recognise.
+// Not checked: sentences (capital letter up to the next period on the same line), a "(comment)" after a tag,
+// <lora:...>, __wildcards__, BREAK and bare numbers. Emphasis like (tag:1.2) or (a, b) is unwrapped.
+function tagRanges(text, known) {
+  const out = [], n = text.length;
+  const norm = t => t.toLowerCase().replace(/\\([()\[\]])/g, '$1').trim().replace(/[\s_]+/g, '_');
+  const check = (raw, at) => {
+    at += raw.length - raw.trimStart().length;
+    let t = raw.trim();
+    if (!t || t[0] === '<' || /^__.+__$/.test(t) || t === 'BREAK' || /^[\d\s.:+\-]+$/.test(t)) return;
+    let inner = t, off = 0;
+    while (/^[(\[{]/.test(inner) && /[)\]}]$/.test(inner)) { inner = inner.slice(1, -1); off++; }
+    if (off) {
+      inner = inner.replace(/:\s*-?[\d.]+\s*$/, '');
+      let p = 0;
+      for (const part of inner.split(',')) { check(part, at + off + p); p += part.length + 1; }
+      return;
+    }
+    if (known(norm(t))) return;
+    const m = t.match(/^(.*?)\s*\((?:[^()\\]|\\.)*\)$/);
+    if (m) { if (m[1] && !known(norm(m[1]))) out.push([at, at + m[1].length]); return; }
+    out.push([at, at + t.length]);
+  };
+  let i = 0;
+  while (i < n) {
+    while (i < n && /[\s,]/.test(text[i])) i++;
+    if (i >= n) break;
+    if (/\p{Lu}/u.test(text[i])) {
+      let j = i;
+      while (j < n && text[j] !== '.' && text[j] !== '\n') j++;
+      if (j < n && text[j] === '.') { i = j + 1; continue; }
+    }
+    let j = i, depth = 0;
+    while (j < n) {
+      const c = text[j];
+      if (c === '\\') { j += 2; continue; }
+      if (c === '(') depth++;
+      else if (c === ')') depth = Math.max(0, depth - 1);
+      else if ((c === ',' && !depth) || c === '\n') break;
+      j++;
+    }
+    j = Math.min(j, n);
+    check(text.slice(i, j), i);
+    i = j;
+  }
+  return out;
+}
 /*CORE-END*/
 
 // ---------- constants ----------
@@ -646,7 +728,7 @@ function lsSet(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); ret
 const state = Object.assign({
   server: location.protocol.startsWith('http') ? location.origin : 'http://127.0.0.1:8188',
   prompt: '', negative: '', performance: 'Speed', aspect: '1152×896', imageNumber: 2, random: true, seed: '0',
-  customSteps: 30, customW: 1024, customH: 1024, advanced: true, tab: 'setting', workflow: 'SDXL', customWfs: {}, perWf: {}, userStyles: [],
+  customSteps: 30, customW: 1024, customH: 1024, tagCheck: false, advanced: true, tab: 'setting', workflow: 'SDXL', customWfs: {}, perWf: {}, userStyles: [],
   inputImage: false, itab: 'uov', uov: 'Disabled', upscaler: null,
   inpaint: {advanced: false, method: 'default', extra: '', dirs: [], invert: false, erode: 0, denoise: 1, field: 0.618}
 }, lsGet(LS_KEY, {}));
@@ -765,12 +847,16 @@ function fitArea(t) {
   t.style.height = 'auto';
   t.style.height = Math.max(t._manual || 0, Math.min(t.scrollHeight + 2, innerHeight * 0.5)) + 'px';
   t._h = t.offsetHeight;
+  highlight(t);
 }
 function growAll() { document.querySelectorAll(AREAS).forEach(fitArea); }
 function setupAreas() {
   for (const t of document.querySelectorAll(AREAS)) {
-    const wrap = el('div', {className: 'area'}), grip = el('div', {className: 'grip'});
-    t.replaceWith(wrap); wrap.append(t, grip);
+    const wrap = el('div', {className: 'area'}), grip = el('div', {className: 'grip'}), hl = el('div', {className: 'hl'});
+    t.replaceWith(wrap); wrap.append(hl, t, grip);
+    t._hl = hl;                                       // layer behind the text that carries the tag-check underlines
+    t.addEventListener('scroll', () => syncHl(t));
+    if (window.ResizeObserver) new ResizeObserver(() => syncHl(t)).observe(t);
     let y0 = null, h0 = 0;
     grip.onpointerdown = e => { try { grip.setPointerCapture(e.pointerId); } catch (err) {} y0 = e.clientY; h0 = t.offsetHeight; };
     grip.onpointermove = e => { if (y0 === null) return; t._manual = Math.max(44, h0 + e.clientY - y0); t.style.height = t._manual + 'px'; t._h = t.offsetHeight; };
@@ -778,6 +864,80 @@ function setupAreas() {
     t.addEventListener('input', () => fitArea(t));
   }
   growAll();
+}
+const escHtml = t => t.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
+function syncHl(t) {
+  const hl = t._hl;
+  if (!hl || !t.offsetParent) return;
+  const cs = getComputedStyle(t);
+  Object.assign(hl.style, {fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight, lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing,
+    width: t.offsetWidth + 'px', height: t.offsetHeight + 'px', paddingRight: (12 + Math.max(0, t.offsetWidth - t.clientWidth - 2)) + 'px'});
+  hl.scrollTop = t.scrollTop;
+}
+function highlight(t) {
+  const hl = t._hl;
+  if (!hl) return;
+  let html = '';
+  if (state.tagCheck && tagDB && tagDB.size) {
+    const text = t.value;
+    let p = 0;
+    for (const [a, b] of tagRanges(text, tagKnown)) { html += escHtml(text.slice(p, a)) + '<span class="bad">' + escHtml(text.slice(a, b)) + '</span>'; p = b; }
+    html += escHtml(text.slice(p)) + '\n';
+  }
+  hl.innerHTML = html;
+  syncHl(t);
+}
+
+// ---------- tag correctness check: tag list and personal dictionary live on the server ----------
+let tagDB = null, tagAdd = new Set(), tagRemove = new Set(), tagInfo = {state: 'off'}, tagMsg = '';
+const normTag = t => String(t).toLowerCase().replace(/\\([()\[\]])/g, '$1').trim().replace(/[\s_]+/g, '_');
+const tagKnown = t => !tagRemove.has(t) && (tagAdd.has(t) || tagDB.has(t));
+function setTagPatch(p) { tagAdd = new Set((p && p.add) || []); tagRemove = new Set((p && p.remove) || []); }
+async function loadTags() {
+  if (!state.tagCheck) { tagInfo = {state: 'off'}; renderTagBox(); growAll(); return; }
+  tagInfo = {state: 'loading'}; renderTagBox();
+  try {
+    const d = await api('/fooocus/tags');
+    tagDB = new Set(d.tags ? d.tags.split('\n') : []);
+    setTagPatch(d.patch);
+    tagInfo = {state: 'ready', count: tagDB.size, file: d.patch_file};
+  } catch (e) { tagDB = null; tagInfo = {state: 'none'}; }
+  renderTagBox(); growAll();
+}
+async function tagAction(path, body, okText) {
+  try {
+    const d = await api(path, body);
+    if (d && d.patch) setTagPatch(d.patch);
+    tagMsg = okText;
+    if (path.endsWith('/download')) return loadTags();
+  } catch (e) { tagMsg = 'Failed: ' + ((e.data && e.data.error) || e.message); }
+  renderTagBox(); growAll();
+}
+function renderTagBox() {
+  const box = $('#tag-box');
+  if (!box) return;
+  const note = (t, cls) => el('div', {className: cls || 'note', textContent: t});
+  const c = el('input', {type: 'checkbox', checked: state.tagCheck});
+  c.onchange = () => { state.tagCheck = c.checked; tagMsg = ''; save(); loadTags(); };
+  box.innerHTML = '';
+  box.append(el('div', {className: 'row'}, el('label', null, c, ' Tag correctness check')),
+    note('Underlines prompt tags that are not in the booru tag list. Not checked: sentences that start with a capital letter and end with a period, and a (comment) written after a tag.'));
+  if (!state.tagCheck) return;
+  if (tagInfo.state === 'loading') { box.append(note('Loading the tag list …')); return; }
+  if (tagInfo.state === 'none') { box.append(note('Needs the fooocus-ui extension installed in ComfyUI (the tag list and your dictionary are kept on the server).', 'warn')); return; }
+  if (!tagInfo.count) {
+    const b = el('button', {className: 'small', textContent: 'Download Danbooru tag list'});
+    b.onclick = () => { tagMsg = 'Downloading …'; renderTagBox(); tagAction('/fooocus/tags/download', {}, ''); };
+    box.append(note('No tag list on the server yet. Download one, or put a .csv / .txt tag file into the "tags" folder of the extension.', 'warn'), el('div', {style: 'margin-top:8px'}, b));
+  } else box.append(note(`${tagInfo.count.toLocaleString()} tags loaded.`));
+  const inp = el('input', {type: 'text', placeholder: 'tag'});
+  const add = el('button', {className: 'small', textContent: 'Add to dictionary'}), del = el('button', {className: 'small', textContent: 'Remove from dictionary'});
+  const act = action => { const t = normTag(inp.value); if (t) tagAction('/fooocus/tags/patch', {action, tag: t}, (action === 'add' ? 'Added: ' : 'Removed: ') + t); };
+  add.onclick = () => act('add'); del.onclick = () => act('remove');
+  inp.onkeydown = e => { if (e.key === 'Enter') act('add'); };
+  box.append(el('div', {style: 'margin-top:10px'}, inp), el('div', {className: 'row', style: 'margin-top:8px'}, add, del));
+  if (tagMsg) box.append(note(tagMsg));
+  box.append(note(`Your additions and removals are saved on the server as a patch file, created when missing: ${tagInfo.file || 'fooocus-ui-tags.json in the ComfyUI folder'}`));
 }
 function showMsg(text) { const m = $('#msg'); m.hidden = !text; m.textContent = text || ''; }
 
@@ -828,6 +988,8 @@ async function connect() {
   renderModelTab(); renderAdvTab(); renderInputPanel();
   openWS();
   await fetchServerStyles();
+  try { hasThumbs = (await fetch(base() + '/fooocus/ping')).ok; } catch (e) { hasThumbs = false; }
+  loadTags();
   return true;
 }
 function openWS() {
@@ -894,8 +1056,8 @@ async function generate() {
   let i2i = null, mode = '', prompt = state.prompt, noStyles = false;
   if (state.inputImage) {
     try {
-      if (state.itab === 'uov' && state.uov !== 'Disabled') { updateBar('Uploading image …'); i2i = await prepareUov(); mode = state.uov; }
-      else if (state.itab === 'inpaint') {
+      if (state.itab === 'uov' && state.uov !== 'Disabled' && slots.uov) { updateBar('Uploading image …'); i2i = await prepareUov(); mode = state.uov; }
+      else if (state.itab === 'inpaint' && slots.inp) {
         updateBar('Preparing mask …');
         i2i = await prepareInpaint(); mode = i2i.outpaint ? 'Outpaint' : 'Inpaint';
         const o = state.inpaint, extra = o.extra.trim();
@@ -1010,7 +1172,7 @@ function setViewer(src, link) {
   let img = v.querySelector('img');
   if (!img) { v.innerHTML = ''; img = el('img'); v.append(img); }
   img.src = src;
-  img.onclick = link ? () => window.open(link, '_blank') : null;
+  img.onclick = link ? () => openViewer(images.map(u => ({url: u})), Math.max(0, images.indexOf(link))) : null;
 }
 function showCurrent() {
   if (current) setViewer(current, current);
@@ -1078,10 +1240,11 @@ function perfHint() {
 // ---------- rendering: Styles ----------
 const sampleFile = name => name.toLowerCase().replace(/ /g, '_') + '.jpg';
 const samplePath = name => (serverStyles ? base() + '/fooocus/samples/' : FOOOCUS_RAW + 'samples/') + sampleFile(name);
-function movePreview(e) {
+function movePreview(e, touch) {
   const p = $('#style-preview');
-  p.style.left = Math.max(8, Math.min(e.clientX + 18, innerWidth - 216)) + 'px';
-  p.style.top = Math.max(8, Math.min(e.clientY + 18, innerHeight - 216)) + 'px';
+  const x = touch ? e.clientX - 100 : e.clientX + 18, y = touch ? (e.clientY > 250 ? e.clientY - 230 : e.clientY + 40) : e.clientY + 18;
+  p.style.left = Math.max(8, Math.min(x, innerWidth - 216)) + 'px';
+  p.style.top = Math.max(8, Math.min(y, innerHeight - 216)) + 'px';
 }
 function renderStyleTab() {
   const st = wfState(), q = $('#style-search').value.trim().toLowerCase(), box = $('#style-list');
@@ -1092,7 +1255,7 @@ function renderStyleTab() {
     const c = el('input', {type: 'checkbox', checked: st.styles.includes(s.name)});
     c.onchange = () => { st.styles = c.checked ? [...st.styles, s.name] : st.styles.filter(n => n !== s.name); save(); };
     const l = el('label', null, c, s.name);
-    l.onmouseenter = e => {
+    const showPreview = (e, touch) => {
       const p = $('#style-preview');
       p.onerror = () => {                             // no local preview: try the Fooocus repository once
         if (serverStyles && !p.dataset.fb) { p.dataset.fb = '1'; p.src = FOOOCUS_RAW + 'samples/' + sampleFile(s.name); }
@@ -1101,10 +1264,21 @@ function renderStyleTab() {
       p.dataset.fb = '';
       p.onload = () => { if (p.dataset.name === s.name) p.hidden = false; };
       p.dataset.name = s.name; p.hidden = true; p.src = samplePath(s.name);
-      movePreview(e);
+      movePreview(e, touch);
     };
-    l.onmousemove = movePreview;
-    l.onmouseleave = () => { const p = $('#style-preview'); p.dataset.name = ''; p.hidden = true; };
+    const hidePreview = () => { const p = $('#style-preview'); p.dataset.name = ''; p.hidden = true; };
+    let hold = 0, held = false;
+    l.onpointerenter = e => { if (e.pointerType === 'mouse') showPreview(e); };
+    l.onpointermove = e => { if (e.pointerType === 'mouse') movePreview(e); };
+    l.onpointerleave = hidePreview;
+    l.onpointerdown = e => {                          // touch: the preview appears after a short hold and does not toggle the style
+      if (e.pointerType === 'mouse') return;
+      held = false; clearTimeout(hold);
+      hold = setTimeout(() => { held = true; showPreview(e, true); }, 350);
+    };
+    l.onpointerup = l.onpointercancel = e => { clearTimeout(hold); if (e.pointerType !== 'mouse') hidePreview(); };
+    l.onclick = e => { if (held) { e.preventDefault(); held = false; } };
+    l.oncontextmenu = e => e.preventDefault();
     box.append(l);
   }
   if (!list.length) box.append(el('div', {textContent: 'No styles found.', style: 'color:var(--dim);padding:6px'}));
@@ -1235,7 +1409,7 @@ function renderAdvTab() {
   sliderField($('#clip-skip'), 'CLIP Skip', 0, 12, 1, st.clipSkip || 0, v => { wfState().clipSkip = v; save(); }, '0 keeps the model default. Other values add a "CLIP Set Last Layer" node (-N) before the prompt is encoded.');
   $('#server').value = state.server;
 }
-function renderAll() { renderSettingTab(); renderStyleTab(); renderModelTab(); renderAdvTab(); renderInputPanel(); }
+function renderAll() { renderSettingTab(); renderStyleTab(); renderModelTab(); renderAdvTab(); renderInputPanel(); renderTagBox(); }
 function showTab(t) {
   state.tab = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
@@ -1285,7 +1459,7 @@ function makeDrop(box, key, onChange) {
     if (f) take(f);
   };
   draw();
-  return draw;
+  return {draw, take};
 }
 function drawStrokes(ctx, strokes, k, ox, oy, eraseColor) {
   ctx.lineCap = ctx.lineJoin = 'round';
@@ -1302,7 +1476,35 @@ function drawStrokes(ctx, strokes, k, ox, oy, eraseColor) {
     ctx.globalCompositeOperation = 'source-over';
   }
 }
-let eraser = false;
+let tool = 'brush', spaceHeld = false, inpHover = false, inpFocus = false;
+function setTool(t) {
+  tool = t;
+  for (const k of ['brush', 'eraser']) $('#tool-' + k).classList.toggle('on', k === t);
+}
+// Zoom of the inpaint picture; the point under the cursor (or the middle of the box) stays where it is.
+function inpZoom(z, e) {
+  const s = slots.inp, box = $('#inp-drop');
+  if (!s || !s.imgEl) return;
+  const img = s.imgEl, r0 = img.getBoundingClientRect(), b = box.getBoundingClientRect();
+  const ax = e ? e.clientX : b.left + box.clientWidth / 2, ay = e ? e.clientY : b.top + box.clientHeight / 2;
+  const fx = (ax - r0.left) / r0.width, fy = (ay - r0.top) / r0.height;
+  s.zoom = Math.min(8, Math.max(1, z));
+  img.style.width = Math.round(s.fit * s.zoom) + 'px';
+  const r1 = img.getBoundingClientRect();
+  box.scrollLeft += r1.left + fx * r1.width - ax;
+  box.scrollTop += r1.top + fy * r1.height - ay;
+  $('#zoom-val').textContent = '🔍 ' + Math.round(s.zoom * 100) + '%';
+}
+function inpLayout() {                                // size that fits the box at 100 %
+  const s = slots.inp, box = $('#inp-drop');
+  box.classList.toggle('has-img', !!s);
+  if (!s || !s.imgEl || !box.clientWidth) return;
+  s.fit = Math.max(64, Math.min(box.clientWidth - 2, innerHeight * 0.7 * s.w / s.h));
+  inpZoom(s.zoom || 1);
+}
+const inpActive = () => state.inputImage && state.itab === 'inpaint' && slots.inp && (inpHover || inpFocus);
+const inpUndo = () => { const s = slots.inp; if (s && s.strokes.length) { s.strokes.pop(); s.redraw(); } };
+const inpClear = () => { const s = slots.inp; if (s) { s.strokes.length = 0; s.redraw(); } };
 function maskOverlay(m) {                             // uploaded / generated mask as white with brightness as opacity
   if (!m.overlay) {
     const [c, x] = mkCanvas(m.w, m.h);
@@ -1318,30 +1520,72 @@ function paintView(s) {
   s.strokes = s.strokes || [];
   const k = Math.min(1, 2048 / Math.max(s.w, s.h));
   const [cv, ctx] = mkCanvas(Math.round(s.w * k), Math.round(s.h * k));
-  const ring = el('div', {className: 'ring', hidden: true});
+  const ring = el('div', {className: 'ring', hidden: true}), box = $('#inp-drop');
   s.redraw = () => {
     ctx.clearRect(0, 0, cv.width, cv.height);
     if (state.inpaint.advanced && slots.mask) ctx.drawImage(maskOverlay(slots.mask), 0, 0, cv.width, cv.height);
     drawStrokes(ctx, s.strokes, k, 0, 0);
   };
-  let cur = null;
+  let cur = null, pan = null, gesture = null;
+  const pts = new Map();
   const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * s.w, (e.clientY - r.top) / r.height * s.h, s.w / r.width]; };
   const moveRing = e => {
     const r = cv.getBoundingClientRect(), d = Number($('#brush').value);
     ring.hidden = false; ring.style.width = ring.style.height = d + 'px';
+    ring.classList.toggle('erase', tool === 'eraser');
     ring.style.left = (e.clientX - r.left - d / 2) + 'px'; ring.style.top = (e.clientY - r.top - d / 2) + 'px';
   };
+  const moving = e => spaceHeld || e.button === 1;
+  const two = () => { const [a, b] = [...pts.values()]; return {d: Math.hypot(a[0] - b[0], a[1] - b[1]), x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2}; };
   cv.onpointerdown = e => {
+    if (e.button === 2) {                             // right button never paints: step aside so the browser menu belongs to the picture
+      cv.style.pointerEvents = 'none';
+      const back = () => setTimeout(() => { cv.style.pointerEvents = ''; }, 0);
+      document.addEventListener('contextmenu', back, {once: true, capture: true});
+      setTimeout(back, 3000);
+      return;
+    }
     try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 2) {                             // two fingers move and zoom the picture instead of painting
+      if (cur) { s.strokes.pop(); cur = null; s.redraw(); }
+      ring.hidden = true; pan = null; gesture = two();
+      return;
+    }
+    if (gesture || pts.size > 2) return;
+    if (moving(e)) { e.preventDefault(); ring.hidden = true; pan = {x: e.clientX, y: e.clientY, l: box.scrollLeft, t: box.scrollTop}; return; }
     const [x, y, f] = pos(e);
-    cur = {size: Number($('#brush').value) * f, erase: eraser, pts: [[x, y]]};
+    cur = {size: Number($('#brush').value) * f, erase: tool === 'eraser', pts: [[x, y]]};
     s.strokes.push(cur); s.redraw(); moveRing(e);
   };
-  cv.onpointermove = e => { moveRing(e); if (!cur) return; const [x, y] = pos(e); cur.pts.push([x, y]); s.redraw(); };
-  cv.onpointerup = cv.onpointercancel = e => { cur = null; if (e.pointerType !== 'mouse') ring.hidden = true; };
+  cv.onpointermove = e => {
+    if (pts.has(e.pointerId)) pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (gesture) {
+      if (pts.size < 2) return;
+      const g = two();
+      box.scrollLeft -= g.x - gesture.x; box.scrollTop -= g.y - gesture.y;
+      if (gesture.d > 0) inpZoom(s.zoom * g.d / gesture.d, {clientX: g.x, clientY: g.y});
+      gesture = g;
+      return;
+    }
+    if (pan) { box.scrollLeft = pan.l - (e.clientX - pan.x); box.scrollTop = pan.t - (e.clientY - pan.y); return; }
+    if (moving(e)) { ring.hidden = true; cv.style.cursor = 'grab'; return; }
+    cv.style.cursor = 'none';
+    moveRing(e);
+    if (!cur) return;
+    const [x, y] = pos(e);
+    cur.pts.push([x, y]); s.redraw();
+  };
+  cv.onpointerup = cv.onpointercancel = e => {
+    pts.delete(e.pointerId);
+    if (gesture && !pts.size) gesture = null;
+    cur = null; pan = null;
+    if (e.pointerType !== 'mouse') ring.hidden = true;
+  };
   cv.onpointerleave = () => { if (!cur) ring.hidden = true; };
   s.redraw();
-  return el('div', {className: 'paint'}, el('img', {src: s.url, draggable: false}), cv, ring);
+  s.imgEl = el('img', {src: s.url, draggable: false});
+  return el('div', {className: 'paint'}, s.imgEl, cv, ring);
 }
 
 async function uploadImage(blob, name) {
@@ -1537,7 +1781,7 @@ async function autoMask() {
     if (!im) throw new Error('no mask came back');
     const blob = await (await fetch(viewUrl(base(), im))).blob();
     slots.mask = await loadImageFile(new File([blob], 'mask.png', {type: blob.type || 'image/png'}));
-    drops.mask();
+    drops.mask.draw();
     if (s.redraw) s.redraw();
   } catch (e) { showMsg('Mask generation failed: ' + errText(e)); }
 }
@@ -1601,7 +1845,7 @@ function renderInputPanel() {
   $('#input-panel').hidden = !state.inputImage;
   document.querySelectorAll('#itabs button').forEach(b => b.classList.toggle('on', b.dataset.itab === state.itab));
   document.querySelectorAll('#input-panel .panel').forEach(p => p.hidden = p.dataset.ipanel !== state.itab);
-  setTimeout(growAll, 0);
+  setTimeout(() => { growAll(); if (slots.inp && !slots.inp.fit) inpLayout(); }, 0);
   const um = $('#uov-method'); um.innerHTML = '';
   for (const name of UOV) {
     const r = el('input', {type: 'radio', name: 'uov', checked: state.uov === name});
@@ -1642,20 +1886,162 @@ function renderInputPanel() {
   renderMetaBox();
 }
 
+// ---------- image viewer: zoom, pan, previous / next, thumbnails ----------
+// Small previews: the fooocus-ui extension resizes them on the server; without it ComfyUI only re-encodes the full-size picture.
+let hasThumbs = false;
+const lightUrl = u => u.includes('/view?') ? u + '&preview=webp;60' : u;
+const thumbUrl = (u, v) => {
+  const i = u.indexOf('/view?');
+  return i < 0 || !hasThumbs ? lightUrl(u) : u.slice(0, i) + '/fooocus/thumb?' + u.slice(i + 6) + '&size=640' + (v ? '&v=' + v : '');
+};
+function thumbImg(url, v, props) {                  // <img> with a small preview; the browser menu ("Save image as") still gets the original file
+  const img = el('img', Object.assign({src: thumbUrl(url, v)}, props));
+  img.onerror = () => { img.onerror = null; img.src = lightUrl(url); };
+  const original = () => { if (img.src !== url) { img.onerror = null; img.src = url; } };
+  img.addEventListener('pointerdown', e => { if (e.button === 2) original(); });
+  img.addEventListener('contextmenu', original);
+  return img;
+}
+const LB = {list: [], i: 0, z: 1, x: 0, y: 0, root: null};
+const viewerOpen = () => !!LB.root;
+function viewerApply() {
+  const r = LB.root;
+  r.img.style.transform = `translate(-50%,-50%) translate(${LB.x}px,${LB.y}px) scale(${LB.z})`;
+  r.thumbs.hidden = LB.z > 1.001 || LB.list.length < 2;
+  r.info.textContent = `${LB.i + 1} / ${LB.list.length}` + (LB.z > 1.001 ? ` · ${Math.round(LB.z * 100)}%` : '');
+  r.stage.style.cursor = LB.z > 1.001 ? 'grab' : 'default';
+}
+function viewerShow(i) {
+  const n = LB.list.length, r = LB.root;
+  LB.i = (i % n + n) % n; LB.z = 1; LB.x = LB.y = 0;
+  const cur = LB.i, url = LB.list[cur].url, light = thumbUrl(url);
+  r.thumbs.innerHTML = '';
+  const strip = () => {                               // thumbnails (7 on each side) are requested only once the picture is on screen
+    if (LB.root !== r || LB.i !== cur || r.thumbs.childElementCount) return;
+    for (let k = Math.max(0, cur - 7); k <= Math.min(n - 1, cur + 7); k++) {
+      const t = thumbImg(LB.list[k].url, 0, {className: k === cur ? 'sel' : ''});
+      t.onclick = () => viewerShow(k);
+      r.thumbs.append(t);
+    }
+  };
+  r.img.onload = strip;
+  r.img.onerror = () => { r.img.onerror = strip; r.img.src = url; };
+  r.img.oncontextmenu = () => { if (LB.i === cur && r.img.src !== url) r.img.src = url; };
+  r.img.src = light;                                  // light version at once, the full file replaces it when it has arrived
+  if (light !== url) {
+    const full = new Image();
+    full.onload = () => { if (LB.root === r && LB.i === cur) r.img.src = url; };
+    full.src = url;
+  }
+  viewerApply();
+}
+function viewerZoom(f, cx, cy) {                      // cx, cy: zoom centre relative to the middle of the stage
+  const z = Math.min(12, Math.max(1, LB.z * f)), k = z / LB.z;
+  LB.x = cx - (cx - LB.x) * k; LB.y = cy - (cy - LB.y) * k; LB.z = z;
+  if (z <= 1.001) { LB.z = 1; LB.x = LB.y = 0; }
+  viewerApply();
+}
+function closeViewer() {
+  if (!LB.root) return;
+  document.removeEventListener('keydown', LB.root.onKey, true);
+  LB.root.el.remove(); LB.root = null;
+}
+function openViewer(list, index) {
+  if (!list.length) return;
+  closeViewer();
+  const img = el('img', {draggable: false}), info = el('div', {id: 'lb-info'}), thumbs = el('div', {id: 'lb-thumbs'});
+  const prev = el('button', {id: 'lb-prev', className: 'lb-nav', textContent: '‹', title: 'Previous (Left arrow)'});
+  const next = el('button', {id: 'lb-next', className: 'lb-nav', textContent: '›', title: 'Next (Right arrow)'});
+  const close = el('button', {id: 'lb-close', textContent: '✕', title: 'Close (Esc)'});
+  const stage = el('div', {id: 'lb-stage', title: 'Double click to zoom · Ctrl + wheel or Ctrl + plus / minus · drag to move'}, img, prev, next, close, info);
+  const root = el('div', {id: 'lb'}, stage, thumbs);
+  LB.list = list; LB.root = {el: root, img, info, thumbs, stage};
+  prev.onclick = e => { e.stopPropagation(); viewerShow(LB.i - 1); };
+  next.onclick = e => { e.stopPropagation(); viewerShow(LB.i + 1); };
+  close.onclick = closeViewer;
+  for (const b of [prev, next, close]) b.onpointerdown = e => e.stopPropagation();
+  if (list.length < 2) prev.hidden = next.hidden = true;
+  const centre = e => { const r = stage.getBoundingClientRect(); return [e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2]; };
+  stage.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (e.ctrlKey) viewerZoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, ...centre(e));
+    else if (LB.z > 1.001) { LB.x -= e.deltaX; LB.y -= e.deltaY; viewerApply(); }
+  }, {passive: false});
+  // pointers: one drags (or swipes between pictures at 100 %), two pinch-zoom; a quick double click / tap zooms in or back out
+  const pts = new Map();
+  let start = null, moved = 0, lastTap = 0, pinch = 0;
+  stage.onpointerdown = e => {
+    try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 1) { start = {x: e.clientX, y: e.clientY, px: LB.x, py: LB.y, target: e.target}; moved = 0; stage.style.cursor = LB.z > 1.001 ? 'grabbing' : 'default'; }
+    else if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); }
+  };
+  stage.onpointermove = e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pts.size === 2) {
+      const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), r = stage.getBoundingClientRect();
+      if (pinch) viewerZoom(d / pinch, (a[0] + b[0]) / 2 - r.left - r.width / 2, (a[1] + b[1]) / 2 - r.top - r.height / 2);
+      pinch = d; moved = 99;
+    } else if (start) {
+      const dx = e.clientX - start.x, dy = e.clientY - start.y;
+      moved = Math.max(moved, Math.hypot(dx, dy));
+      if (LB.z > 1.001) { LB.x = start.px + dx; LB.y = start.py + dy; viewerApply(); }
+    }
+  };
+  stage.onpointerup = stage.onpointercancel = e => {
+    const had = pts.size;
+    pts.delete(e.pointerId);
+    if (had !== 1 || !start) { if (!pts.size) start = null; return; }
+    const dx = e.clientX - start.x, st = start;
+    start = null; viewerApply();
+    if (moved > 8) { if (LB.z <= 1.001 && Math.abs(dx) > 60 && list.length > 1) viewerShow(LB.i + (dx < 0 ? 1 : -1)); return; }
+    const now = Date.now();
+    if (now - lastTap < 320) {                        // double click
+      lastTap = 0;
+      if (LB.z > 1.001) viewerZoom(0, 0, 0);
+      else viewerZoom(Math.min(8, Math.max(3, img.naturalWidth / Math.max(1, img.clientWidth))), ...centre(e));
+    } else { lastTap = now; if (st.target === stage) setTimeout(() => { if (lastTap === now) closeViewer(); }, 330); }
+  };
+  LB.root.onKey = e => {
+    const ctrl = e.ctrlKey || e.metaKey;
+    let hit = true;
+    if (e.key === 'Escape') closeViewer();
+    else if (e.key === 'ArrowLeft') viewerShow(LB.i - 1);
+    else if (e.key === 'ArrowRight') viewerShow(LB.i + 1);
+    else if (ctrl && (e.code === 'Equal' || e.code === 'NumpadAdd')) viewerZoom(1.25, 0, 0);
+    else if (ctrl && (e.code === 'Minus' || e.code === 'NumpadSubtract')) viewerZoom(1 / 1.25, 0, 0);
+    else if (ctrl && (e.code === 'Digit0' || e.code === 'Numpad0')) viewerZoom(0, 0, 0);
+    else hit = false;
+    if (hit) { e.preventDefault(); e.stopPropagation(); }
+  };
+  document.addEventListener('keydown', LB.root.onKey, true);
+  document.body.append(root);
+  viewerShow(index);
+}
+
 // ---------- History Log page (same file, opened with #history) ----------
-const dayOf = t => { const d = new Date(t), z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+const PAGE_SIZE = 100;
+const dayOf = t => stamp(t).slice(0, 10);
+const stamp = t => { const d = new Date(t), z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`; };
 async function renderHistory() {
-  document.title = 'Fooocus Log';
+  document.title = 'History Log';
   const root = el('div', {id: 'history'});
   document.body.innerHTML = ''; document.body.append(root);
+  root.append(el('h2', {textContent: 'History Log'}), el('div', {textContent: 'Loading …', style: 'color:var(--dim)'}));
   const local = lsGet(LOG_KEY, []).map(e => ({t: e.t, url: viewUrl(e.server, e.im), meta: e.meta}));
-  const localMeta = new Map(local.map(e => [e.url, e.meta]));
   let entries = null, note = '', fromFolder = false;
-  try {                                               // fooocus-ui folder installed: list the output folder itself, survives restarts
+  try {                                               // fooocus-ui extension installed: the output folder itself, survives restarts
     const r = await fetch(base() + '/fooocus/history');
     if (r.ok) {
-      entries = (await r.json()).items.map(i => ({t: i.t, url: viewUrl(base(), {filename: i.filename, subfolder: i.subfolder, type: 'output'}), meta: null}));
-      fromFolder = true;
+      const localMeta = new Map(local.map(e => [e.url, e.meta]));
+      entries = (await r.json()).items.map(i => {
+        const im = {filename: i.filename, subfolder: i.subfolder, type: 'output'}, url = viewUrl(base(), im);
+        let meta = i.meta;
+        if (!meta && i.chunks) try { meta = metaFromChunks(i.chunks); } catch (e) {}
+        return {t: i.t, url, im, meta: meta || localMeta.get(url) || {}};
+      });
+      fromFolder = hasThumbs = true;
     }
   } catch (e) {}
   if (!entries) {
@@ -1676,42 +2062,63 @@ async function renderHistory() {
           if (!known.has(url)) { known.add(url); entries.push({t, url, meta}); }
         }
       }
-      note = 'Showing images generated from this browser and since ComfyUI was last started. Install the fooocus-ui folder into custom_nodes to list the whole output folder.';
+      note = 'Showing images generated from this browser and since ComfyUI was last started. Install the fooocus-ui extension in ComfyUI to list the whole output folder, search it and delete from it.';
     } catch (e) { note = 'ComfyUI is not reachable — showing only images generated from this browser.'; }
   }
-  entries.sort((a, b) => b.t - a.t);
-  const days = [...new Set(entries.map(e => dayOf(e.t)))];
-  const today = dayOf(Date.now());
-  if (!days.includes(today)) days.unshift(today);
-  const sel = el('select', {style: 'width:auto'}), list = el('div'), count = el('span', {style: 'color:var(--dim)'});
-  fillSelect(sel, days, today);
-  const draw = async () => {
-    const day = sel.value, items = entries.filter(e => dayOf(e.t) === day);
-    count.textContent = `${items.length} image${items.length === 1 ? '' : 's'}`;
-    if (fromFolder && items.some(e => !e.meta)) {     // parameters are read from the files of that day
-      list.innerHTML = ''; list.append(el('div', {textContent: 'Loading …', style: 'color:var(--dim);padding:20px 0'}));
-      try {
-        const [y, m, d] = day.split('-').map(Number), from = new Date(y, m - 1, d).getTime();
-        const r = await fetch(`${base()}/fooocus/history?from=${from}&to=${from + 86400000}`);
-        const byUrl = new Map((await r.json()).items.map(i => [viewUrl(base(), {filename: i.filename, subfolder: i.subfolder, type: 'output'}), i.chunks || {}]));
-        for (const e of items) { let m = null; try { m = metaFromChunks(byUrl.get(e.url) || {}); } catch (err) {} e.meta = m || localMeta.get(e.url) || {}; }
-      } catch (err) { for (const e of items) e.meta = e.meta || localMeta.get(e.url) || {}; }
-      if (sel.value !== day) return;
+  entries.sort((a, b) => a.t - b.t);                  // oldest first: page 1 is always the oldest full page, the newest page is the partial one
+  const hay = e => e.hay || (e.hay = [stamp(e.t), e.im ? e.im.filename : '', ...Object.values(e.meta || {})].join('\n').toLowerCase());
+  const ALL = 'All time', today = dayOf(Date.now());
+  const days = [...new Set(entries.map(e => dayOf(e.t)))].reverse();
+  const daySel = el('select');
+  fillSelect(daySel, [ALL, ...days], days.includes(today) ? today : ALL);
+  const search = el('input', {type: 'search', placeholder: 'Search prompts, LoRAs, models …'});
+  const count = el('span', {style: 'color:var(--dim)'}), pager = el('div', {className: 'pager'}), list = el('div');
+  let page = 0, timer = 0;                            // page 0 = newest
+  const draw = () => {
+    const q = search.value.trim().toLowerCase(), day = daySel.value;
+    const found = entries.filter(e => (day === ALL || dayOf(e.t) === day) && (!q || hay(e).includes(q)));
+    const pages = Math.max(1, Math.ceil(found.length / PAGE_SIZE));
+    if (page < 1 || page > pages) page = pages;
+    const items = found.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).reverse();
+    count.textContent = `${found.length} image${found.length === 1 ? '' : 's'}`;
+    pager.innerHTML = ''; pager.hidden = pages < 2;
+    pager.append(el('span', {textContent: 'current page:'}));
+    for (let p = pages; p >= 1; p--) {
+      const a = el('a', {textContent: p, className: p === page ? 'on' : ''});
+      a.onclick = () => { page = p; draw(); scrollTo(0, 0); };
+      pager.append(a);
     }
     list.innerHTML = '';
-    if (!items.length) list.append(el('div', {textContent: 'Nothing generated on this day yet.', style: 'color:var(--dim);padding:20px 0'}));
-    for (const e of items) {
+    if (!items.length) list.append(el('div', {textContent: q ? 'Nothing found.' : 'Nothing generated yet.', style: 'color:var(--dim);padding:20px 0'}));
+    const viewList = items.map(e => ({url: e.url}));
+    items.forEach((e, k) => {
       const table = el('table');
-      const rows = Object.assign({'Time': new Date(e.t).toLocaleTimeString()}, e.meta);
-      for (const [k, v] of Object.entries(rows)) if (v !== '' && v != null) table.append(el('tr', null, el('td', {textContent: k}), el('td', {textContent: String(v)})));
-      const img = el('img', {src: e.url, loading: 'lazy'});
-      list.append(el('div', {className: 'hrow block'}, el('a', {href: e.url, target: '_blank', style: 'display:contents'}, img), table));
-    }
+      const rows = Object.assign({'Date': stamp(e.t)}, e.meta);
+      for (const [key, v] of Object.entries(rows)) if (v !== '' && v != null) table.append(el('tr', null, el('td', {textContent: key}), el('td', {textContent: String(v)})));
+      const img = thumbImg(e.url, e.t, {loading: 'lazy'});
+      img.onclick = () => openViewer(viewList, k);
+      const side = el('div', {className: 'side'}, table);
+      if (fromFolder) {                               // delete: press Delete, then the tick that appears next to it
+        const del = el('button', {className: 'small', textContent: 'Delete', title: 'Delete this image file'});
+        const ok = el('button', {className: 'small', textContent: '✓', title: 'Confirm: delete the file for good', hidden: true});
+        del.onclick = () => { ok.hidden = !ok.hidden; };
+        ok.onclick = async () => {
+          try {
+            await api('/fooocus/history/delete', {filename: e.im.filename, subfolder: e.im.subfolder});
+            entries.splice(entries.indexOf(e), 1); draw();
+          } catch (err) { ok.hidden = true; del.textContent = 'Delete failed'; }
+        };
+        side.append(el('div', {className: 'row'}, del, ok));
+      }
+      list.append(el('div', {className: 'hrow block'}, img, side));
+    });
   };
-  sel.onchange = draw;
-  root.append(el('h2', {textContent: 'Fooocus Log'}), el('div', {className: 'row', style: 'margin-bottom:16px'}, sel, count));
+  search.oninput = () => { clearTimeout(timer); timer = setTimeout(() => { page = 0; draw(); }, 200); };
+  daySel.onchange = () => { page = 0; draw(); };
+  root.innerHTML = '';
+  root.append(el('div', {className: 'bar'}, el('h2', {textContent: 'History Log'}), daySel, search, count));
   if (note) root.append(el('div', {className: 'note', textContent: note, style: 'margin:0 0 12px'}));
-  root.append(list);
+  root.append(pager, list);
   draw();
 }
 
@@ -1781,17 +2188,51 @@ function init() {
   $('#mask-gen').onclick = autoMask;
   $('#inp-engine').onchange = e => { wfState().engine = e.target.checked; save(); };
   $('#inp-invert').onchange = e => { state.inpaint.invert = e.target.checked; save(); };
-  $('#inp-undo').onclick = () => { const s = slots.inp; if (s && s.strokes.length) { s.strokes.pop(); s.redraw(); } };
-  $('#inp-clear').onclick = () => { const s = slots.inp; if (s) { s.strokes.length = 0; s.redraw(); } };
-  makeDrop($('#uov-drop'), 'uov');
-  makeDrop($('#inp-drop'), 'inp', s => { $('#inp-tools').hidden = !s; });
+  $('#inp-undo').onclick = inpUndo;
+  $('#inp-clear').onclick = inpClear;
+  $('#zoom-in').onclick = () => inpZoom((slots.inp ? slots.inp.zoom : 1) * 1.25);
+  $('#zoom-out').onclick = () => inpZoom((slots.inp ? slots.inp.zoom : 1) / 1.25);
+  $('#zoom-val').ondblclick = () => inpZoom(1);
+  const ib = $('#inp-drop');
+  ib.addEventListener('wheel', e => { if (!e.ctrlKey || !slots.inp) return; e.preventDefault(); inpZoom(slots.inp.zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e); }, {passive: false});
+  ib.onpointerenter = () => { inpHover = true; };
+  ib.onpointerleave = () => { inpHover = false; };
+  document.addEventListener('pointerdown', e => { inpFocus = !!(e.target.closest && e.target.closest('[data-ipanel=inpaint]')); }, true);
+  window.addEventListener('resize', inpLayout);
+  // inpaint shortcuts, only while the pointer is over the picture or the inpaint tab was clicked last
+  document.addEventListener('keydown', e => {
+    if (viewerOpen() || !inpActive()) return;
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) && e.target.type !== 'range' && e.target.type !== 'checkbox';
+    if (typing) return;
+    const z = slots.inp.zoom || 1, ctrl = e.ctrlKey || e.metaKey;
+    let hit = true;
+    if (ctrl && (e.code === 'Equal' || e.code === 'NumpadAdd')) inpZoom(z * 1.25);
+    else if (ctrl && (e.code === 'Minus' || e.code === 'NumpadSubtract')) inpZoom(z / 1.25);
+    else if (ctrl && (e.code === 'Digit0' || e.code === 'Numpad0')) inpZoom(1);
+    else if (ctrl && e.code === 'KeyZ') inpUndo();
+    else if (ctrl && e.code === 'Delete') inpClear();
+    else if (!ctrl && !e.altKey && e.code === 'KeyE') setTool('brush');
+    else if (!ctrl && !e.altKey && e.code === 'KeyQ') setTool('eraser');
+    else if (e.code === 'Space') spaceHeld = true;
+    else hit = false;
+    if (hit) e.preventDefault();
+  });
+  document.addEventListener('keyup', e => { if (e.code === 'Space') spaceHeld = false; });
+  drops.uov = makeDrop($('#uov-drop'), 'uov');
+  drops.inp = makeDrop($('#inp-drop'), 'inp', s => { $('#inp-tools').hidden = !s; if (s) s.zoom = 1; inpLayout(); });
   drops.mask = makeDrop($('#mask-drop'), 'mask', () => { if (slots.inp && slots.inp.redraw) slots.inp.redraw(); });
-  const setTool = e => { eraser = e; $('#tool-brush').classList.toggle('on', !e); $('#tool-eraser').classList.toggle('on', e); };
-  $('#tool-brush').onclick = () => setTool(false);
-  $('#tool-eraser').onclick = () => setTool(true);
-  makeDrop($('#meta-drop'), 'meta', async s => {
+  for (const k of ['brush', 'eraser']) $('#tool-' + k).onclick = () => setTool(k);
+  drops.meta = makeDrop($('#meta-drop'), 'meta', async s => {
     if (s) try { s.meta = metaFromChunks(parsePngText(await s.file.arrayBuffer())); } catch (e) { s.meta = null; }
     renderMetaBox();
+  });
+  // Ctrl+V: a picture from the clipboard goes into the open Input Image tab
+  document.addEventListener('paste', e => {
+    const f = [...((e.clipboardData && e.clipboardData.files) || [])].find(x => x.type.startsWith('image/'));
+    const a = document.activeElement, inText = a && (a.tagName === 'TEXTAREA' || a.isContentEditable || (a.tagName === 'INPUT' && !/^(checkbox|radio|range|button|file)$/.test(a.type)));
+    if (!f || inText || !state.inputImage || viewerOpen()) return;
+    e.preventDefault();
+    drops[{uov: 'uov', inpaint: 'inp', meta: 'meta'}[state.itab]].take(f);
   });
   window.addEventListener('dragover', e => e.preventDefault());
   window.addEventListener('drop', e => e.preventDefault());
