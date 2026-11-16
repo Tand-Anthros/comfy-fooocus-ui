@@ -59,19 +59,25 @@ input[type=range]{accent-color:var(--slider);width:100%;margin:8px 0 0;display:b
 #thumbs{display:flex;gap:8px;overflow-x:auto;padding:8px}
 #thumbs:empty{display:none}
 #thumbs img{height:84px;border-radius:6px;border:2px solid transparent;cursor:pointer;flex:none}
-#thumbs img.sel{border-color:var(--slider)}
+#thumbs img.sel{border-color:#fff;box-shadow:0 0 0 2px var(--blue)}
+#thumbs img.live{min-width:84px;background:#111827;border-style:dashed;border-color:var(--border2);object-fit:cover}
+#thumbs img.live.sel{border-color:#fff}
 #prompt-row{display:flex;gap:16px;align-items:stretch}
 .area{flex:1;min-width:0;position:relative}
 .area textarea{position:relative;z-index:1;background:transparent}
 .hl{position:absolute;top:0;left:0;z-index:0;pointer-events:none;overflow:hidden;white-space:pre-wrap;overflow-wrap:break-word;color:transparent;
   background:var(--block);border:1px solid transparent;border-radius:var(--radius);padding:9px 12px}
 .hl .bad{text-decoration:underline;text-decoration-color:rgba(248,113,113,.8);text-decoration-thickness:2px;text-underline-offset:3px}
+.sug{position:relative;flex:1;min-width:0}
+.sug-list{position:absolute;left:0;right:0;top:100%;z-index:20;margin-top:2px;background:#111827;border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;box-shadow:0 8px 24px #000a}
+.sug-list div{padding:6px 12px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sug-list div:hover{background:var(--border)}
 .grip{display:none;height:16px;touch-action:none;cursor:ns-resize}
 .grip::after{content:"";display:block;width:48px;height:4px;border-radius:2px;background:var(--border2);margin:6px auto 0}
 @media (pointer:coarse){.grip{display:block}}
 #prompt-row textarea{min-height:84px;font-size:15px}
 #btns{display:flex;flex-direction:column;gap:8px;width:120px}
-#btns button{flex:1;font-size:16px}
+#btns button{flex:1;font-size:16px;max-height:80px}
 #under{display:flex;gap:22px;align-items:center;flex-wrap:wrap}
 #under label{display:flex;gap:8px;align-items:center;cursor:pointer}
 #conn{margin-left:auto;color:var(--dim);font-size:13px;display:flex;gap:6px;align-items:center}
@@ -133,14 +139,17 @@ details[open]>summary{margin-bottom:12px}
 .drop .ph{font-size:15px;line-height:1.7;pointer-events:none}
 .drop .ph span{color:var(--dim)}
 .drop>img{max-width:100%;max-height:420px;display:block}
-.drop .x{position:absolute;top:6px;right:6px;width:26px;height:26px;padding:0;border-radius:50%;font-size:12px;z-index:2}
+.drop .x,#lb-close{position:absolute;top:4px;right:6px;z-index:3;width:34px;height:34px;padding:0;background:none;border:0;color:#fff;font-size:24px;font-weight:700;line-height:1;
+  text-shadow:0 0 3px #000,2px 0 0 #000,-2px 0 0 #000,0 2px 0 #000,0 -2px 0 #000,1.5px 1.5px 0 #000,-1.5px -1.5px 0 #000,1.5px -1.5px 0 #000,-1.5px 1.5px 0 #000}
+.drop .x:hover,#lb-close:hover{background:none;color:#d1d5db}
 .paint{position:relative;display:inline-block;vertical-align:top;line-height:0;touch-action:none;user-select:none;overflow:hidden}
-#inp-drop.has-img{display:block;overflow:auto;max-height:84vh;cursor:default}
+#inp-drop.has-img{display:block;cursor:default}
+#inp-drop .scroll{overflow:auto;max-height:84vh;text-align:center}
 .zoom{display:flex;align-items:center;gap:4px;margin-left:auto}
 .zoom span{min-width:72px;text-align:center;white-space:nowrap}
 .zoom button{width:30px;padding:5px 0}
 .paint img{display:block;max-width:none}
-.paint canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.6;cursor:none}
+.paint canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.62;cursor:none}
 .ring{position:absolute;border:1.5px solid #fff;outline:1px solid #000;border-radius:50%;pointer-events:none}
 .ring.erase{border:2px dashed #fff;outline:0;box-shadow:0 0 0 1px #0009}
 .tools button.on{border-color:var(--slider);box-shadow:0 0 0 1px var(--slider)}
@@ -161,26 +170,37 @@ details[open]>summary{margin-bottom:12px}
 #history .pager span{color:var(--dim)}
 #history .pager a{color:#60a5fa;text-decoration:underline;cursor:pointer}
 #history .pager a.on{color:#c084fc}
-#history .side{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+#history .side{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;align-items:flex-start;align-self:center}
 #history .hrow img{cursor:zoom-in}
 /* image viewer */
 #lb{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.94);display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
 #lb-stage{flex:1;position:relative;overflow:hidden;touch-action:none;cursor:grab}
-#lb-stage img{position:absolute;left:50%;top:50%;max-width:100%;max-height:100%;transform-origin:center;-webkit-user-drag:none}
+#lb-stage img{position:absolute;left:50%;top:50%;width:100%;height:100%;object-fit:contain;transform-origin:center;-webkit-user-drag:none}
 .lb-nav{position:absolute;top:0;bottom:0;width:12%;min-width:44px;z-index:2;background:none;border:0;border-radius:0;font-size:34px;font-weight:400;color:#fff7}
 .lb-nav:hover{background:#ffffff0f;color:#fff}
 #lb-prev{left:0} #lb-next{right:0}
-#lb-close{position:absolute;top:10px;right:10px;z-index:3;width:36px;height:36px;padding:0;border-radius:50%}
+#lb-close{top:8px;right:10px;width:42px;height:42px;font-size:32px}
 #lb-info{position:absolute;top:14px;left:14px;z-index:3;color:#fffb;font-size:13px;pointer-events:none}
-#lb-thumbs{display:flex;gap:6px;justify-content:center;overflow:hidden;padding:8px;height:92px;flex:none}
-#lb-thumbs img{height:72px;border-radius:4px;border:2px solid transparent;cursor:pointer;flex:none}
-#lb-thumbs img.sel{border-color:var(--slider)}
+#lb-thumbs{display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;padding:9px 8px;height:98px;flex:none;touch-action:pan-x;scrollbar-width:thin}
+#lb-thumbs img{height:72px;border-radius:4px;border:3px solid transparent;cursor:pointer;flex:none;opacity:.55}
+#lb-thumbs img:first-child{margin-left:auto}
+#lb-thumbs img:last-child{margin-right:auto}
+#lb-thumbs img.sel{border-color:#fff;box-shadow:0 0 0 2px var(--blue);opacity:1}
 #history h2{margin:0 0 12px}
 #history .hrow{display:flex;gap:16px;padding:14px;margin-bottom:12px}
-#history .hrow>img{width:320px;max-width:40%;height:auto;align-self:flex-start;border-radius:6px}
-#history table{border-collapse:collapse;width:100%;font-size:13px}
-#history td{border:1px solid var(--border);padding:5px 8px;vertical-align:top;word-break:break-word}
-#history td:first-child{color:var(--dim);white-space:nowrap;width:140px}
+#history .hrow>img{width:320px;max-width:40%;height:auto;min-height:120px;object-fit:contain;background:#111827;align-self:center;border-radius:6px}
+input[type=file]{width:100%;font-size:13px;color:var(--dim)}
+#history .meta{display:grid;grid-template-columns:max-content 1fr;width:100%;font-size:13px;border:1px solid var(--border);border-bottom:0}
+#history .meta>div{padding:5px 8px;border-bottom:1px solid var(--border);overflow-wrap:anywhere;min-width:0}
+#history .meta .k{color:var(--dim);white-space:nowrap;border-right:1px solid var(--border)}
+@media (orientation:portrait),(max-width:700px){
+  #history{padding:10px}
+  #history .hrow{flex-direction:column;align-items:center}
+  #history .hrow>img{width:100%;max-width:100%}
+  #history .side{width:100%;align-items:stretch}
+  #history .meta{font-size:13px}
+  #history .meta .k{white-space:normal;max-width:34vw}
+}
 
 @media (orientation:portrait),(max-width:900px){
   #app{flex-direction:column;align-items:stretch;padding:10px}
@@ -227,7 +247,7 @@ details[open]>summary{margin-bottom:12px}
       <div class="panel" data-ipanel="inpaint" hidden>
         <div class="drop tall" id="inp-drop"></div>
         <div class="tools" id="inp-tools" hidden>
-          <span>Brush size</span><input type="range" id="brush" min="4" max="200" value="40">
+          <span>Brush size</span><input type="range" id="brush" min="4" max="200" value="40" title="Brush size (Shift + mouse wheel)">
           <button class="small on" id="tool-brush" title="Brush (E)">Brush</button><button class="small" id="tool-eraser" title="Eraser (Q)">Eraser</button>
           <button class="small" id="inp-undo" title="Undo the last stroke (Ctrl+Z)">Undo</button><button class="small" id="inp-clear" title="Clear the mask (Ctrl+Del)">Clear mask</button>
           <span class="zoom" title="Zoom: Ctrl + mouse wheel, Ctrl + plus / minus, Ctrl + 0 to reset. Move: hold Space and drag, or two fingers."><button class="small" id="zoom-out" title="Zoom out (Ctrl + minus)">−</button><span id="zoom-val">🔍 100%</span><button class="small" id="zoom-in" title="Zoom in (Ctrl + plus)">+</button></span>
@@ -290,6 +310,7 @@ details[open]>summary{margin-bottom:12px}
         <div class="field"><span class="lbl">Workflow</span><select id="workflow"></select></div>
       </div>
       <div class="form" id="loras"></div>
+      <div class="form" id="lora-manage" hidden></div>
       <div class="form" id="files"></div>
       <div class="form" id="turbo-box"></div>
       <input type="file" id="wf-file" accept=".json" hidden>
@@ -889,6 +910,7 @@ function highlight(t) {
 }
 
 // ---------- tag correctness check: tag list and personal dictionary live on the server ----------
+let tagList = [];
 let tagDB = null, tagAdd = new Set(), tagRemove = new Set(), tagInfo = {state: 'off'}, tagMsg = '';
 const normTag = t => String(t).toLowerCase().replace(/\\([()\[\]])/g, '$1').trim().replace(/[\s_]+/g, '_');
 const tagKnown = t => !tagRemove.has(t) && (tagAdd.has(t) || tagDB.has(t));
@@ -898,17 +920,38 @@ async function loadTags() {
   tagInfo = {state: 'loading'}; renderTagBox();
   try {
     const d = await api('/fooocus/tags');
-    tagDB = new Set(d.tags ? d.tags.split('\n') : []);
+    tagList = d.tags ? d.tags.split('\n') : [];
+    tagDB = new Set(tagList);
     setTagPatch(d.patch);
-    tagInfo = {state: 'ready', count: tagDB.size, file: d.patch_file};
+    const sources = d.sources || {};
+    tagInfo = {state: 'ready', count: tagDB.size, file: d.patch_file, files: d.files || [], sources, missing: Object.keys(sources).filter(n => !(d.files || []).includes(n))};
   } catch (e) { tagDB = null; tagInfo = {state: 'none'}; }
   renderTagBox(); growAll();
+  if (tagInfo.state === 'ready' && tagInfo.missing.length && !tagTried) { tagTried = true; downloadTags(); }
+}
+// Booru tag lists are not shipped with the page. The server knows which lists exist and where they come from and
+// fetches the missing ones; if it cannot reach the source, the browser downloads the file and hands it over.
+let tagTried = false;
+async function downloadTags() {
+  const say = t => { tagMsg = t; renderTagBox(); }, failed = [];
+  for (const name of tagInfo.missing) {
+    say(`Downloading the tag list ${name} …`);
+    try { await api('/fooocus/tags/download', {name}); continue; } catch (e) {}
+    try {
+      const r = await fetch(tagInfo.sources[name]);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const up = await fetch(base() + '/fooocus/tags/upload?name=' + encodeURIComponent(name), {method: 'POST', headers: {'Content-Type': 'text/plain'}, body: await r.text()});
+      if (!up.ok) throw new Error('upload HTTP ' + up.status);
+    } catch (e) { failed.push(`${name} (${e.message})`); }
+  }
+  tagMsg = failed.length ? 'Could not download: ' + failed.join(', ') + '. Any .csv or .txt tag list can also be put into the "tags" folder of this extension by hand.' : '';
+  return loadTags();
 }
 async function tagAction(path, body, okText) {
   try {
     const d = await api(path, body);
     if (d && d.patch) setTagPatch(d.patch);
-    tagMsg = okText;
+    tagMsg = (d && {exists: 'Already in the dictionary: ', absent: 'Not in the dictionary: '}[d.result] + (body.tag || '')) || okText;
     if (path.endsWith('/download')) return loadTags();
   } catch (e) { tagMsg = 'Failed: ' + ((e.data && e.data.error) || e.message); }
   renderTagBox(); growAll();
@@ -923,21 +966,54 @@ function renderTagBox() {
   box.append(el('div', {className: 'row'}, el('label', null, c, ' Tag correctness check')),
     note('Underlines prompt tags that are not in the booru tag list. Not checked: sentences that start with a capital letter and end with a period, and a (comment) written after a tag.'));
   if (!state.tagCheck) return;
-  if (tagInfo.state === 'loading') { box.append(note('Loading the tag list …')); return; }
   if (tagInfo.state === 'none') { box.append(note('Needs the fooocus-ui extension installed in ComfyUI (the tag list and your dictionary are kept on the server).', 'warn')); return; }
-  if (!tagInfo.count) {
-    const b = el('button', {className: 'small', textContent: 'Download Danbooru tag list'});
-    b.onclick = () => { tagMsg = 'Downloading …'; renderTagBox(); tagAction('/fooocus/tags/download', {}, ''); };
-    box.append(note('No tag list on the server yet. Download one, or put a .csv / .txt tag file into the "tags" folder of the extension.', 'warn'), el('div', {style: 'margin-top:8px'}, b));
-  } else box.append(note(`${tagInfo.count.toLocaleString()} tags loaded.`));
-  const inp = el('input', {type: 'text', placeholder: 'tag'});
-  const add = el('button', {className: 'small', textContent: 'Add to dictionary'}), del = el('button', {className: 'small', textContent: 'Remove from dictionary'});
+  if (tagInfo.state !== 'ready') { box.append(note('Loading the tag list …')); return; }   // also before the first connection
+  box.append(tagInfo.count ? note(`${tagInfo.count.toLocaleString()} tags loaded (${tagInfo.files.join(', ')}).`) : note('No booru tag list on the server yet, so nothing is checked.', 'warn'));
+  if (tagInfo.missing.length) {
+    const b = el('button', {className: 'small', textContent: 'Download ' + tagInfo.missing.join(', ')});
+    b.onclick = () => { tagTried = true; downloadTags(); };
+    box.append(el('div', {style: 'margin-top:8px'}, b));
+  }
+  const inp = el('input', {type: 'text', placeholder: 'add or remove tag'});
+  const add = el('button', {className: 'small', textContent: '+', title: 'Add to dictionary'}), del = el('button', {className: 'small', textContent: '🗑', title: 'Remove from dictionary'});
   const act = action => { const t = normTag(inp.value); if (t) tagAction('/fooocus/tags/patch', {action, tag: t}, (action === 'add' ? 'Added: ' : 'Removed: ') + t); };
   add.onclick = () => act('add'); del.onclick = () => act('remove');
   inp.onkeydown = e => { if (e.key === 'Enter') act('add'); };
-  box.append(el('div', {style: 'margin-top:10px'}, inp), el('div', {className: 'row', style: 'margin-top:8px'}, add, del));
+  const sug = withSuggest(inp, text => bestMatches([...new Set([...tagAdd, ...tagList])].filter(t => !tagRemove.has(t)), text, normTag).map(t => t.replace(/_/g, ' ')));
+  box.append(el('div', {className: 'row', style: 'margin-top:10px;flex-wrap:nowrap'}, sug, add, del));
   if (tagMsg) box.append(note(tagMsg));
   box.append(note(`Your additions and removals are saved on the server as a patch file, created when missing: ${tagInfo.file || 'fooocus-ui-tags.json in the ComfyUI folder'}`));
+}
+// Suggestions under a text input: up to 10 options from options(text); choosing one fills the input.
+function withSuggest(input, options, onPick) {
+  const list = el('div', {className: 'sug-list', hidden: true}), wrap = el('div', {className: 'sug'}, input, list);
+  let timer = 0;
+  const show = () => {
+    const found = input.value.trim() ? options(input.value.trim()).slice(0, 10) : [];
+    list.innerHTML = '';
+    for (const o of found) {
+      const d = el('div', {textContent: o});
+      d.onpointerdown = e => { e.preventDefault(); input.value = o; list.hidden = true; if (onPick) onPick(o); };
+      list.append(d);
+    }
+    list.hidden = !found.length;
+  };
+  input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(show, 120); });
+  input.addEventListener('focus', show);
+  input.addEventListener('blur', () => setTimeout(() => { list.hidden = true; }, 150));
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') list.hidden = true; });
+  return wrap;
+}
+// Best matches for a typed fragment: names that start with it first, shorter first.
+function bestMatches(items, text, key) {
+  const t = key(text), a = [], b = [];
+  for (const it of items) {
+    const k = key(it), i = k.indexOf(t);
+    if (i === 0) a.push(it); else if (i > 0 && b.length < 200) b.push(it);
+    if (a.length >= 400) break;
+  }
+  const byLen = (x, y) => x.length - y.length || (x < y ? -1 : 1);
+  return a.sort(byLen).concat(b.sort(byLen)).slice(0, 10);
 }
 function showMsg(text) { const m = $('#msg'); m.hidden = !text; m.textContent = text || ''; }
 
@@ -989,6 +1065,7 @@ async function connect() {
   openWS();
   await fetchServerStyles();
   try { hasThumbs = (await fetch(base() + '/fooocus/ping')).ok; } catch (e) { hasThumbs = false; }
+  renderLoraManage();
   loadTags();
   return true;
 }
@@ -1016,6 +1093,7 @@ let previewUrl = null;
 
 function setBusy(on) {
   $('#generate').hidden = on; $('#skip').hidden = !on; $('#stop').hidden = !on; $('#progress').hidden = !on;
+  if (on) startLive(); else endLive();
   if (!on && previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
 }
 function updateBar(text) {
@@ -1151,32 +1229,57 @@ async function stop() {
 
 // ---------- gallery ----------
 const images = [];              // newest first
-let current = null;
+const LIVE = 'live';            // "current" value while following the picture that is being generated
+let current = null, liveThumb = null, liveSrc = '';
+const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+function startLive() {
+  if (liveThumb) return;
+  liveSrc = '';
+  liveThumb = el('img', {src: BLANK, className: 'live', title: 'Being generated'});
+  liveThumb.onclick = () => { current = LIVE; showCurrent(); };
+  $('#thumbs').prepend(liveThumb);
+  current = LIVE; showCurrent();
+}
+function endLive() {
+  if (!liveThumb) return;
+  liveThumb.remove(); liveThumb = null; liveSrc = '';
+  if (current === LIVE) current = images[0] || null;
+  showCurrent();
+}
+function setLive(src) {
+  liveSrc = src;
+  if (liveThumb) liveThumb.src = src;
+  if (current === LIVE) setViewer(src, null);
+}
 function addImage(im, meta) {
   const url = viewUrl(base(), im);
   if (images.includes(url)) return;
-  images.unshift(url); current = url;
+  images.unshift(url);
   if (meta && (im.type || 'output') === 'output') {
     const log = lsGet(LOG_KEY, []);
     log.push({t: Date.now(), server: base(), im: {filename: im.filename, subfolder: im.subfolder || '', type: 'output'}, meta});
     if (log.length > 3000) log.splice(0, log.length - 3000);
     lsSet(LOG_KEY, log);
   }
-  const t = el('img', {src: url, loading: 'lazy'});
+  const t = thumbImg(url, 0, {loading: 'lazy'});
+  t.dataset.url = url;
   t.onclick = () => { current = url; showCurrent(); };
-  $('#thumbs').prepend(t);
+  if (liveThumb) { liveThumb.after(t); setLive(url); }  // the finished picture stays in the live slot until the next preview arrives
+  else { $('#thumbs').prepend(t); if (!current || current === LIVE) current = url; }
   showCurrent();
 }
 function setViewer(src, link) {
   const v = $('#viewer');
   let img = v.querySelector('img');
   if (!img) { v.innerHTML = ''; img = el('img'); v.append(img); }
-  img.src = src;
+  if (img.getAttribute('src') !== src) img.src = src;
+  img.style.cursor = link ? 'zoom-in' : 'default';
   img.onclick = link ? () => openViewer(images.map(u => ({url: u})), Math.max(0, images.indexOf(link))) : null;
 }
 function showCurrent() {
-  if (current) setViewer(current, current);
-  for (const t of $('#thumbs').children) t.classList.toggle('sel', t.src === current);
+  if (current === LIVE) { if (liveSrc) setViewer(liveSrc, images.includes(liveSrc) ? liveSrc : null); }
+  else if (current) setViewer(current, current);
+  for (const t of $('#thumbs').children) t.classList.toggle('sel', t === liveThumb ? current === LIVE : t.dataset.url === current);
 }
 function onPreview(buf) {
   if (!job) return;
@@ -1184,7 +1287,7 @@ function onPreview(buf) {
   if (!blob) return;
   const old = previewUrl;
   previewUrl = URL.createObjectURL(blob);
-  setViewer(previewUrl, null);
+  setLive(previewUrl);
   if (old) URL.revokeObjectURL(old);
 }
 
@@ -1331,6 +1434,55 @@ function loraFiles() {
 const loraList = () => loraFiles().filter(n => !isTurbo(n));     // regular LoRA slots
 const turboList = () => loraFiles().filter(isTurbo);             // Extreme Speed LoRA choice
 function loraLabel(n) { const dir = loraDir(), p = loraParts(n); return dir && p.length > 1 && p[0] === dir ? n.slice(dir.length + 1) : n; }
+// Add or delete LoRA files on the server (needs the fooocus-ui extension). New files go into the folder of the current workflow.
+let loraMsg = '';
+function renderLoraManage() {
+  const box = $('#lora-manage');
+  box.hidden = !hasThumbs;
+  box.innerHTML = '';
+  if (!hasThumbs) return;
+  const dir = loraDir() || '';
+  const name = el('input', {type: 'text', placeholder: 'LoRA name (empty: the file name)'});
+  const del = el('button', {className: 'small', textContent: '🗑', title: 'Delete the LoRA with this name'});
+  const ok = el('button', {className: 'small', textContent: '✓', title: 'Confirm: delete the file for good', hidden: true});
+  const file = el('input', {type: 'file', accept: '.safetensors', hidden: true});
+  const drop = el('div', {className: 'drop', style: 'min-height:110px;margin-top:10px'}, file,
+    el('div', {className: 'ph', innerHTML: 'Drop LoRA File Here<br><span>- or -</span><br>Click to Upload'}));
+  drop.onclick = () => file.click();
+  file.onclick = e => e.stopPropagation();
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+  drop.ondragleave = () => drop.classList.remove('over');
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) send(e.dataTransfer.files[0]); };
+  const status = el('div', {className: 'note', textContent: loraMsg, hidden: !loraMsg});
+  const say = t => { loraMsg = t; status.textContent = t; status.hidden = !t; };
+  const stem = n => n.replace(/\.safetensors$/i, '').toLowerCase();
+  const find = () => { const t = stem(name.value.trim()); return t ? loraFiles().find(n => stem(loraLabel(n)) === t || stem(n) === t) : null; };
+  name.oninput = () => { ok.hidden = true; };
+  del.onclick = () => { if (find()) ok.hidden = !ok.hidden; else { ok.hidden = true; say(name.value.trim() ? 'No LoRA with this name in the list.' : 'Type the name of the LoRA to delete.'); } };
+  ok.onclick = async () => {
+    const target = find();
+    if (!target) return;
+    try { await api('/fooocus/lora/delete', {name: target}); loraMsg = 'Deleted: ' + loraLabel(target); await connect(); }
+    catch (e) { ok.hidden = true; say('Delete failed: ' + ((e.data && e.data.error) || e.message)); }
+  };
+  file.onchange = () => { if (file.files[0]) send(file.files[0]); };
+  const send = f => {
+    if (!/\.safetensors$/i.test(f.name)) { file.value = ''; say('Only .safetensors files can be added.'); return; }
+    const x = new XMLHttpRequest();
+    x.open('POST', `${base()}/fooocus/lora/upload?name=${encodeURIComponent(name.value.trim() || f.name)}&dir=${encodeURIComponent(dir)}`);
+    x.upload.onprogress = e => { if (e.lengthComputable) say(`Uploading … ${Math.round(e.loaded / e.total * 100)}%`); };
+    x.onerror = () => { file.value = ''; say('Upload failed: no connection to ComfyUI.'); };
+    x.onload = async () => {
+      let d = {}; try { d = JSON.parse(x.responseText); } catch (e) {}
+      if (x.status !== 200) { file.value = ''; say('Upload failed: ' + (d.error || 'HTTP ' + x.status)); return; }
+      loraMsg = 'Added: ' + d.name; await connect();
+    };
+    say('Uploading …'); x.send(f);
+  };
+  box.append(el('div', {className: 'field'}, el('span', {className: 'lbl', textContent: 'Add or delete a LoRA'}),
+    el('div', {className: 'row', style: 'flex-wrap:nowrap'}, withSuggest(name, text => bestMatches(loraFiles().map(loraLabel), text, x => x.toLowerCase()), () => { ok.hidden = true; }), del, ok), drop,
+    el('div', {className: 'note', textContent: 'A .safetensors file dropped here is added to ' + (dir ? `models/loras/${dir}` : 'models/loras') + ' under the name above. The bin deletes the LoRA with that name.'}), status));
+}
 // Turbo LoRA: added automatically in Extreme Speed and Lightning (chosen at the bottom of the Models tab)
 function turbo() {
   const st = wfState();
@@ -1339,6 +1491,7 @@ function turbo() {
   return st.turbo;
 }
 function renderModelTab() {
+  renderLoraManage();
   fillSelect($('#workflow'), [...Object.keys(TEMPLATES), ...Object.keys(state.customWfs)], state.workflow);
   const box = $('#files'), bm = $('#base-model'), bw = $('#base-warn'); box.innerHTML = ''; bw.hidden = true;
   let wf, a;
@@ -1480,12 +1633,18 @@ let tool = 'brush', spaceHeld = false, inpHover = false, inpFocus = false;
 function setTool(t) {
   tool = t;
   for (const k of ['brush', 'eraser']) $('#tool-' + k).classList.toggle('on', k === t);
+  if (slots.inp && slots.inp.ringRefresh) slots.inp.ringRefresh();
+}
+function setBrush(v) {
+  const b = $('#brush');
+  b.value = Math.min(Number(b.max), Math.max(Number(b.min), Math.round(v)));
+  if (slots.inp && slots.inp.ringRefresh) slots.inp.ringRefresh();
 }
 // Zoom of the inpaint picture; the point under the cursor (or the middle of the box) stays where it is.
 function inpZoom(z, e) {
-  const s = slots.inp, box = $('#inp-drop');
+  const s = slots.inp;
   if (!s || !s.imgEl) return;
-  const img = s.imgEl, r0 = img.getBoundingClientRect(), b = box.getBoundingClientRect();
+  const box = s.box, img = s.imgEl, r0 = img.getBoundingClientRect(), b = box.getBoundingClientRect();
   const ax = e ? e.clientX : b.left + box.clientWidth / 2, ay = e ? e.clientY : b.top + box.clientHeight / 2;
   const fx = (ax - r0.left) / r0.width, fy = (ay - r0.top) / r0.height;
   s.zoom = Math.min(8, Math.max(1, z));
@@ -1496,9 +1655,10 @@ function inpZoom(z, e) {
   $('#zoom-val').textContent = '🔍 ' + Math.round(s.zoom * 100) + '%';
 }
 function inpLayout() {                                // size that fits the box at 100 %
-  const s = slots.inp, box = $('#inp-drop');
-  box.classList.toggle('has-img', !!s);
-  if (!s || !s.imgEl || !box.clientWidth) return;
+  const s = slots.inp;
+  $('#inp-drop').classList.toggle('has-img', !!s);
+  if (!s || !s.imgEl || !s.box.clientWidth) return;
+  const box = s.box;
   s.fit = Math.max(64, Math.min(box.clientWidth - 2, innerHeight * 0.7 * s.w / s.h));
   inpZoom(s.zoom || 1);
 }
@@ -1520,21 +1680,39 @@ function paintView(s) {
   s.strokes = s.strokes || [];
   const k = Math.min(1, 2048 / Math.max(s.w, s.h));
   const [cv, ctx] = mkCanvas(Math.round(s.w * k), Math.round(s.h * k));
-  const ring = el('div', {className: 'ring', hidden: true}), box = $('#inp-drop');
+  const ring = el('div', {className: 'ring', hidden: true}), box = el('div', {className: 'scroll'});
+  // colour map for the mask: white, fading to grey where the picture itself is very light, so the mask stays visible there
+  const [tint, tx] = mkCanvas(cv.width, cv.height);
+  tx.drawImage(s.img, 0, 0, cv.width, cv.height);
+  try {
+    const d = tx.getImageData(0, 0, cv.width, cv.height), a = d.data;
+    for (let i = 0; i < a.length; i += 4) {
+      const lum = 0.299 * a[i] + 0.587 * a[i + 1] + 0.114 * a[i + 2];
+      a[i] = a[i + 1] = a[i + 2] = lum <= 165 ? 255 : 255 - (lum - 165) / 90 * 165;
+      a[i + 3] = 255;
+    }
+    tx.putImageData(d, 0, 0);
+  } catch (err) { tx.fillStyle = '#fff'; tx.fillRect(0, 0, cv.width, cv.height); }
   s.redraw = () => {
     ctx.clearRect(0, 0, cv.width, cv.height);
     if (state.inpaint.advanced && slots.mask) ctx.drawImage(maskOverlay(slots.mask), 0, 0, cv.width, cv.height);
     drawStrokes(ctx, s.strokes, k, 0, 0);
+    ctx.globalCompositeOperation = 'source-in';       // keep the mask shape, take the colour from the map
+    ctx.drawImage(tint, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
   };
   let cur = null, pan = null, gesture = null;
   const pts = new Map();
   const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * s.w, (e.clientY - r.top) / r.height * s.h, s.w / r.width]; };
+  let last = null;                                    // last pointer position, so the ring can be redrawn without a move
   const moveRing = e => {
     const r = cv.getBoundingClientRect(), d = Number($('#brush').value);
+    last = {clientX: e.clientX, clientY: e.clientY};
     ring.hidden = false; ring.style.width = ring.style.height = d + 'px';
     ring.classList.toggle('erase', tool === 'eraser');
     ring.style.left = (e.clientX - r.left - d / 2) + 'px'; ring.style.top = (e.clientY - r.top - d / 2) + 'px';
   };
+  s.ringRefresh = () => { if (last && !ring.hidden) moveRing(last); };
   const moving = e => spaceHeld || e.button === 1;
   const two = () => { const [a, b] = [...pts.values()]; return {d: Math.hypot(a[0] - b[0], a[1] - b[1]), x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2}; };
   cv.onpointerdown = e => {
@@ -1585,7 +1763,9 @@ function paintView(s) {
   cv.onpointerleave = () => { if (!cur) ring.hidden = true; };
   s.redraw();
   s.imgEl = el('img', {src: s.url, draggable: false});
-  return el('div', {className: 'paint'}, s.imgEl, cv, ring);
+  box.append(el('div', {className: 'paint'}, s.imgEl, cv, ring));
+  s.box = box;
+  return box;
 }
 
 async function uploadImage(blob, name) {
@@ -1833,8 +2013,10 @@ function applyMeta(m) {
     if (main && m['Base Model'] && has(main.cls, main.field, m['Base Model'])) st.files[main.id + '.' + main.field] = m['Base Model'];
   } catch (e) {}
   if (m['LoRAs'] != null) {
-    const list = String(m['LoRAs']).split(', ').map(x => x.match(/^(.*) : (-?[\d.]+)$/)).filter(Boolean);
+    const all = String(m['LoRAs']).split(', ').map(x => x.match(/^(.*) : (-?[\d.]+)$/)).filter(Boolean);
+    const list = all.filter(x => !isTurbo(x[1])), tb = all.find(x => isTurbo(x[1]));
     st.loras.forEach((l, i) => { const x = list[i]; l.on = true; l.name = x ? x[1] : 'None'; l.weight = x ? Number(x[2]) : 1; });
+    if (tb) Object.assign(turbo(), {on: true, name: tb[1], weight: Number(tb[2])});
   }
   save(); renderAll(); growAll();
 }
@@ -1915,23 +2097,36 @@ function viewerShow(i) {
   const n = LB.list.length, r = LB.root;
   LB.i = (i % n + n) % n; LB.z = 1; LB.x = LB.y = 0;
   const cur = LB.i, url = LB.list[cur].url, light = thumbUrl(url);
+  const had = r.thumbs.childElementCount > 0;
   r.thumbs.innerHTML = '';
+  const centre = () => {
+    const t = r.thumbs.querySelector('.sel');
+    if (t) r.thumbs.scrollLeft = t.offsetLeft - r.thumbs.offsetLeft - (r.thumbs.clientWidth - t.offsetWidth) / 2;
+  };
   const strip = () => {                               // thumbnails (7 on each side) are requested only once the picture is on screen
     if (LB.root !== r || LB.i !== cur || r.thumbs.childElementCount) return;
     for (let k = Math.max(0, cur - 7); k <= Math.min(n - 1, cur + 7); k++) {
       const t = thumbImg(LB.list[k].url, 0, {className: k === cur ? 'sel' : ''});
       t.onclick = () => viewerShow(k);
+      t.addEventListener('load', centre);
       r.thumbs.append(t);
     }
+    centre();
   };
-  r.img.onload = strip;
-  r.img.onerror = () => { r.img.onerror = strip; r.img.src = url; };
+  if (had) strip();                                   // when leafing through, the strip moves at once
   r.img.oncontextmenu = () => { if (LB.i === cur && r.img.src !== url) r.img.src = url; };
-  r.img.src = light;                                  // light version at once, the full file replaces it when it has arrived
-  if (light !== url) {
-    const full = new Image();
-    full.onload = () => { if (LB.root === r && LB.i === cur) r.img.src = url; };
-    full.src = url;
+  const here = () => LB.root === r && LB.i === cur;
+  const put = src => { if (!here()) return; r.img.onload = r.img.onerror = strip; r.img.src = src; };
+  const full = new Image();                           // the previous picture stays until the next one is ready: no black flash
+  full.onload = () => put(url);
+  if (light === url) { full.onerror = () => put(url); full.src = url; }
+  else {
+    const pre = new Image();
+    let shown = false;
+    pre.onload = () => { if (!full.complete || !full.naturalWidth) { shown = true; put(light); } };
+    pre.onerror = () => {};
+    pre.src = light; full.src = url;
+    full.onerror = () => { if (!shown) put(light); };
   }
   viewerApply();
 }
@@ -1962,6 +2157,11 @@ function openViewer(list, index) {
   for (const b of [prev, next, close]) b.onpointerdown = e => e.stopPropagation();
   if (list.length < 2) prev.hidden = next.hidden = true;
   const centre = e => { const r = stage.getBoundingClientRect(); return [e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2]; };
+  const fitScale = () => { const r = stage.getBoundingClientRect(); return Math.min(r.width / (img.naturalWidth || r.width), r.height / (img.naturalHeight || r.height)); };
+  const outside = e => {                              // a click beside the picture (on the dark area) closes the viewer
+    const [x, y] = centre(e), f = fitScale() * LB.z;
+    return Math.abs(x - LB.x) > (img.naturalWidth || 1e9) * f / 2 || Math.abs(y - LB.y) > (img.naturalHeight || 1e9) * f / 2;
+  };
   stage.addEventListener('wheel', e => {
     e.preventDefault();
     if (e.ctrlKey) viewerZoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, ...centre(e));
@@ -2000,8 +2200,8 @@ function openViewer(list, index) {
     if (now - lastTap < 320) {                        // double click
       lastTap = 0;
       if (LB.z > 1.001) viewerZoom(0, 0, 0);
-      else viewerZoom(Math.min(8, Math.max(3, img.naturalWidth / Math.max(1, img.clientWidth))), ...centre(e));
-    } else { lastTap = now; if (st.target === stage) setTimeout(() => { if (lastTap === now) closeViewer(); }, 330); }
+      else viewerZoom(Math.min(8, Math.max(3, 1 / fitScale())), ...centre(e));
+    } else { lastTap = now; if (outside(e)) setTimeout(() => { if (lastTap === now) closeViewer(); }, 330); }
   };
   LB.root.onKey = e => {
     const ctrl = e.ctrlKey || e.metaKey;
@@ -2092,9 +2292,9 @@ async function renderHistory() {
     if (!items.length) list.append(el('div', {textContent: q ? 'Nothing found.' : 'Nothing generated yet.', style: 'color:var(--dim);padding:20px 0'}));
     const viewList = items.map(e => ({url: e.url}));
     items.forEach((e, k) => {
-      const table = el('table');
+      const table = el('div', {className: 'meta'});
       const rows = Object.assign({'Date': stamp(e.t)}, e.meta);
-      for (const [key, v] of Object.entries(rows)) if (v !== '' && v != null) table.append(el('tr', null, el('td', {textContent: key}), el('td', {textContent: String(v)})));
+      for (const [key, v] of Object.entries(rows)) if (v !== '' && v != null) table.append(el('div', {className: 'k', textContent: key}), el('div', {className: 'v', textContent: String(v)}));
       const img = thumbImg(e.url, e.t, {loading: 'lazy'});
       img.onclick = () => openViewer(viewList, k);
       const side = el('div', {className: 'side'}, table);
@@ -2190,11 +2390,18 @@ function init() {
   $('#inp-invert').onchange = e => { state.inpaint.invert = e.target.checked; save(); };
   $('#inp-undo').onclick = inpUndo;
   $('#inp-clear').onclick = inpClear;
+  $('#brush').oninput = () => { if (slots.inp && slots.inp.ringRefresh) slots.inp.ringRefresh(); };
   $('#zoom-in').onclick = () => inpZoom((slots.inp ? slots.inp.zoom : 1) * 1.25);
   $('#zoom-out').onclick = () => inpZoom((slots.inp ? slots.inp.zoom : 1) / 1.25);
   $('#zoom-val').ondblclick = () => inpZoom(1);
   const ib = $('#inp-drop');
-  ib.addEventListener('wheel', e => { if (!e.ctrlKey || !slots.inp) return; e.preventDefault(); inpZoom(slots.inp.zoom * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e); }, {passive: false});
+  ib.addEventListener('wheel', e => {
+    if (!slots.inp || !(e.ctrlKey || e.shiftKey)) return;
+    e.preventDefault();
+    const up = (e.deltaY || e.deltaX) < 0;            // with Shift some browsers report the wheel as horizontal
+    if (e.ctrlKey) inpZoom(slots.inp.zoom * (up ? 1.15 : 1 / 1.15), e);
+    else { const v = Number($('#brush').value); setBrush(v + (up ? 1 : -1) * Math.max(2, v * 0.12)); }
+  }, {passive: false});
   ib.onpointerenter = () => { inpHover = true; };
   ib.onpointerleave = () => { inpHover = false; };
   document.addEventListener('pointerdown', e => { inpFocus = !!(e.target.closest && e.target.closest('[data-ipanel=inpaint]')); }, true);
@@ -2236,7 +2443,8 @@ function init() {
   });
   window.addEventListener('dragover', e => e.preventDefault());
   window.addEventListener('drop', e => e.preventDefault());
-  renderAll(); showTab(state.tab);
+  try { renderAll(); } catch (e) { console.error(e); }   // a drawing problem must never keep the page from connecting
+  showTab(state.tab);
   setupAreas();
   (async () => {
     if (!state.serverSet) { const u = await findServer(); if (u) { state.server = u; $('#server').value = u; save(); } }
