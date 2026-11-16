@@ -13,13 +13,16 @@ Adds no nodes. It makes ComfyUI hand out the page and gives the page what a brow
   /fooocus/samples/<file>   style preview pictures from  styles/samples/
   /fooocus/history          every image in the ComfyUI output folder with its parameters (History Log); delete one image
   /fooocus/thumb            a small preview of an output image
-  /fooocus/tags             booru tag list from  tags/*.csv|*.txt  plus the personal dictionary (tag correctness check)
+  /fooocus/tags             booru tag lists from  tags/*.csv|*.txt  plus the personal dictionary (tag correctness check)
+  /fooocus/lora             add or delete a LoRA file (.safetensors) in models/loras
 """
 import asyncio
+import gc
 import io
 import json
 import logging
 import os
+import stat
 import urllib.request
 
 from aiohttp import web
@@ -37,7 +40,13 @@ _FIRST = ["sdxl_styles_fooocus.json", "sdxl_styles_sai.json", "sdxl_styles_mre.j
           "sdxl_styles_twri.json", "sdxl_styles_diva.json", "sdxl_styles_marc_k3nt3l.json"]
 
 # Tag correctness check: the list offered for download, and the personal dictionary ("patch") in the ComfyUI folder.
-_TAGS_URL = "https://raw.githubusercontent.com/DominikDoom/a1111-sd-webui-tagcomplete/main/tags/danbooru.csv"
+# Tag lists the page offers to download into tags/: file name -> where it comes from.
+# Every list is a CSV whose first column is the tag. Add an entry here to offer another list.
+_TAG_SOURCES = {
+    "danbooru.csv": "https://raw.githubusercontent.com/DominikDoom/a1111-sd-webui-tagcomplete/main/tags/danbooru.csv",
+    "e621.csv": "https://raw.githubusercontent.com/DominikDoom/a1111-sd-webui-tagcomplete/main/tags/e621.csv",
+    "gelbooru.csv": "https://raw.githubusercontent.com/DraconicDragon/dbr-e621-lists-archive/main/tag-lists/gelbooru/gelbooru_2026-06-10_pt20.csv",
+}
 _PATCH = os.path.join(getattr(folder_paths, "base_path", os.getcwd()), "fooocus-ui-tags.json")
 # quality and rating words that anime models are trained with but that are not booru tags
 _PATCH_DEFAULT = {"add": ["masterpiece", "best_quality", "good_quality", "normal_quality", "low_quality", "worst_quality",
@@ -296,12 +305,17 @@ def _load_tags():
     return _TAG_CACHE["tags"]
 
 
+def _unique(tags):
+    """The tags without empties and repeats, first occurrence kept."""
+    return list(dict.fromkeys(t for t in tags if t))
+
+
 def _read_patch():
     """The personal dictionary; the file is created with a few common quality words when it does not exist."""
     try:
         with open(_PATCH, encoding="utf-8") as fh:
             data = json.load(fh)
-        return {"add": [str(t) for t in data.get("add", [])], "remove": [str(t) for t in data.get("remove", [])]}
+        return {key: _unique(_norm_tag(t) for t in data.get(key, [])) for key in ("add", "remove")}
     except FileNotFoundError:
         _write_patch(_PATCH_DEFAULT)
         return {k: list(v) for k, v in _PATCH_DEFAULT.items()}
@@ -317,7 +331,9 @@ def _write_patch(patch):
 
 def _tags_payload():
     tags = _load_tags()
-    return {"tags": "\n".join(tags), "count": len(tags), "patch": _read_patch(), "patch_file": _PATCH}
+    files = sorted(f for f in os.listdir(_TAGS) if f.lower().endswith((".csv", ".txt"))) if os.path.isdir(_TAGS) else []
+    return {"tags": "\n".join(tags), "count": len(tags), "files": files, "sources": _TAG_SOURCES,
+            "patch": _read_patch(), "patch_file": _PATCH}
 
 
 @routes.get("/fooocus/tags")
@@ -335,36 +351,176 @@ async def fooocus_tags_patch(request):
         return web.json_response({"error": "expected JSON with action and tag"}, status=400)
     if action not in ("add", "remove") or not tag:
         return web.json_response({"error": "action must be add or remove, tag must not be empty"}, status=400)
-    patch = _read_patch()
-    here, other = (patch["add"], patch["remove"]) if action == "add" else (patch["remove"], patch["add"])
-    if tag in other:
-        other.remove(tag)
-    if tag not in here:
-        here.append(tag)
+    patch, base = _read_patch(), set(await _run(_load_tags))
+    # every tag is kept once: nothing is added that the tag lists already know, nothing is removed that nobody knows
+    if action == "add":
+        known = tag not in patch["remove"] and (tag in base or tag in patch["add"])
+        patch["remove"] = [t for t in patch["remove"] if t != tag]
+        if tag not in base and tag not in patch["add"]:
+            patch["add"].append(tag)
+        result = "exists" if known else "added"
+    else:
+        known = tag not in patch["remove"] and (tag in base or tag in patch["add"])
+        patch["add"] = [t for t in patch["add"] if t != tag]
+        if tag in base and tag not in patch["remove"]:
+            patch["remove"].append(tag)
+        result = "removed" if known else "absent"
     try:
         _write_patch(patch)
     except OSError as exc:
         return web.json_response({"error": f"cannot write {_PATCH}: {exc}"}, status=500)
-    return web.json_response({"patch": patch, "patch_file": _PATCH})
+    return web.json_response({"patch": patch, "patch_file": _PATCH, "result": result})
 
 
-def _download_tags():
+def _download_tags(name):
     os.makedirs(_TAGS, exist_ok=True)
-    with urllib.request.urlopen(_TAGS_URL, timeout=120) as resp:
+    with urllib.request.urlopen(_TAG_SOURCES[name], timeout=120) as resp:
         data = resp.read()
-    with open(os.path.join(_TAGS, "danbooru.csv"), "wb") as fh:
+    with open(os.path.join(_TAGS, name), "wb") as fh:
         fh.write(data)
     return len(_load_tags())
 
 
 @routes.post("/fooocus/tags/download")
 async def fooocus_tags_download(request):
-    """Fetch the Danbooru tag list (from the a1111-sd-webui-tagcomplete project) into tags/danbooru.csv."""
+    """Fetch one of the known tag lists into tags/. Body: {"name": <a key of _TAG_SOURCES>}"""
     try:
-        count = await _run(_download_tags)
+        name = (await request.json()).get("name")
+    except Exception:
+        name = None
+    if name not in _TAG_SOURCES:
+        return web.json_response({"error": "unknown tag list"}, status=400)
+    try:
+        count = await _run(_download_tags, name)
     except Exception as exc:
         return web.json_response({"error": f"download failed: {exc}"}, status=502)
     return web.json_response({"count": count})
+
+
+@routes.post("/fooocus/tags/upload")
+async def fooocus_tags_upload(request):
+    """Store a known tag list sent by the browser (used when the server itself cannot download it): ?name=<a key of _TAG_SOURCES>"""
+    name = request.query.get("name")
+    if name not in _TAG_SOURCES:
+        return web.json_response({"error": "unknown tag list"}, status=400)
+    data = await request.read()
+    if not data or b"," not in data[:4096] and b"\n" not in data[:4096]:
+        return web.json_response({"error": "expected the text of a tag list"}, status=400)
+    try:
+        os.makedirs(_TAGS, exist_ok=True)
+        with open(os.path.join(_TAGS, name), "wb") as fh:
+            fh.write(data)
+        count = len(await _run(_load_tags))
+    except OSError as exc:
+        return web.json_response({"error": str(exc)}, status=500)
+    return web.json_response({"count": count})
+
+
+# ---------------------------------------------------------------- LoRA files
+
+_LORA_EXT = ".safetensors"  # the only format accepted: it cannot carry code
+
+
+def _lora_roots():
+    return [os.path.realpath(p) for p in folder_paths.get_folder_paths("loras")]
+
+
+def _lora_target(folder, name):
+    """Where a new LoRA goes: <loras root>/<folder>/<name>.safetensors. `folder` is one existing subfolder or empty."""
+    folder = os.path.basename(str(folder or "").replace("\\", "/").strip("/ "))
+    name = os.path.basename(str(name or "").replace("\\", "/")).strip()
+    if name.lower().endswith(_LORA_EXT):
+        name = name[:-len(_LORA_EXT)]
+    name = name.strip(" .")
+    if not name or folder in (".", ".."):
+        return None
+    roots = _lora_roots()
+    root = next((r for r in roots if folder and os.path.isdir(os.path.join(r, folder))), None)
+    if root is None:
+        root, folder = roots[0], ""
+    return os.path.join(root, folder, name + _LORA_EXT)
+
+
+@routes.post("/fooocus/lora/upload")
+async def fooocus_lora_upload(request):
+    """The request body is the file itself: ?name=<LoRA name>&dir=<subfolder of models/loras or empty>"""
+    target = _lora_target(request.query.get("dir"), request.query.get("name"))
+    if target is None:
+        return web.json_response({"error": "a LoRA name is required"}, status=400)
+    tmp, size, head = target + ".part", 0, b""
+    try:
+        with open(tmp, "wb") as fh:  # streamed to disk, so the size is not limited by ComfyUI's upload limit
+            async for chunk in request.content.iter_chunked(1 << 20):
+                if size < 9:
+                    head = (head + chunk)[:9]
+                fh.write(chunk)
+                size += len(chunk)
+        # a safetensors file starts with the 8-byte length of its JSON header, then "{"
+        if size < 16 or head[8:9] != b"{" or int.from_bytes(head[:8], "little") > size:
+            os.remove(tmp)
+            return web.json_response({"error": "this is not a .safetensors file"}, status=400)
+        os.replace(tmp, target)
+    except OSError as exc:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        return web.json_response({"error": str(exc)}, status=500)
+    return web.json_response({"name": os.path.basename(target), "size": size})
+
+
+async def _remove_file(path):
+    """Delete a file; returns an error text or None.
+
+    On Windows a LoRA that was used since ComfyUI started stays mapped into memory (and a file may be read-only),
+    which makes deleting fail with "access denied". So: clear the read-only flag, ask ComfyUI to drop its caches
+    and loaded models, and try again a few times."""
+    last = None
+    for attempt in range(6):
+        try:
+            os.remove(path)
+            return None
+        except FileNotFoundError:
+            return None
+        except PermissionError as exc:
+            last = exc
+        except OSError as exc:
+            return str(exc)
+        try:
+            os.chmod(path, stat.S_IWRITE | stat.S_IREAD)
+        except OSError:
+            pass
+        if attempt == 0:
+            try:
+                queue = PromptServer.instance.prompt_queue
+                queue.set_flag("unload_models", True)
+                queue.set_flag("free_memory", True)
+            except Exception as exc:
+                logging.warning("[fooocus-ui] cannot ask ComfyUI to free memory: %s", exc)
+        await asyncio.sleep(0.7)
+        gc.collect()
+    return f"{last}. The file is still in use by ComfyUI: wait for the current generation to finish or restart ComfyUI, then delete it again."
+
+
+@routes.post("/fooocus/lora/delete")
+async def fooocus_lora_delete(request):
+    """Body: {"name": <LoRA as ComfyUI lists it, e.g. "anima/style.safetensors">}"""
+    try:
+        rel = str((await request.json())["name"]).replace("\\", "/")
+    except Exception:
+        return web.json_response({"error": "expected JSON with name"}, status=400)
+    if not rel.lower().endswith(_LORA_EXT):
+        return web.json_response({"error": "only .safetensors files can be deleted"}, status=400)
+    for root in _lora_roots():
+        path = os.path.realpath(os.path.join(root, rel))
+        try:
+            inside = os.path.commonpath([root, path]) == root
+        except ValueError:
+            inside = False
+        if inside and os.path.isfile(path):
+            error = await _remove_file(path)
+            if error:
+                return web.json_response({"error": error}, status=500)
+            return web.json_response({"deleted": rel})
+    return web.json_response({"error": "file not found"}, status=404)
 
 
 NODE_CLASS_MAPPINGS = {}
