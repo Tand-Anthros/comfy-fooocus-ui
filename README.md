@@ -8,6 +8,7 @@ It adds **no nodes** and has **no dependencies**. After installing, open:
 ```
 http://127.0.0.1:8188/fooocus
 ```
+![example.png](example.png)
 
 ## What it does
 
