@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <title>Fooocus-style UI for ComfyUI</title>
 <style>
 :root{
@@ -53,9 +53,17 @@ input[type=range]{accent-color:var(--slider);width:100%;margin:8px 0 0;display:b
 #bar{position:relative;height:24px;background:#111827;border-radius:6px;overflow:hidden}
 #bar-fill{position:absolute;inset:0 auto 0 0;width:0;background:#3b82f6;opacity:.65;transition:width .2s}
 #bar-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
-#viewer{height:68vh;min-height:320px;display:flex;align-items:center;justify-content:center;overflow:hidden}
-#viewer img{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in}
-#viewer svg{width:20px;height:20px;color:#9ca3af}
+#viewer{height:68vh;min-height:320px;display:flex;flex-direction:column;overflow:hidden}
+#preview-frame{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+#preview-image{max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in}
+#preview-frame>svg{width:20px;height:20px;color:#9ca3af}
+#preview-hint{flex:none;margin:0;padding:6px 8px 8px;text-align:center;overflow-wrap:anywhere}
+#preview-hint a{color:inherit;text-decoration:underline}
+#preview-actions{position:absolute;left:8px;bottom:8px;display:flex;gap:4px}
+#preview-actions button{min-width:36px;min-height:36px;padding:0;font-size:16px}
+#preview-frame .preview-icon{background:none;border:0}
+#preview-frame .preview-icon canvas{display:block;width:32px;height:32px;margin:auto;color-scheme:only light;forced-color-adjust:none}
+#preview-to-input{position:absolute;right:8px;bottom:8px;width:36px;height:36px;padding:0}
 #thumbs{display:flex;gap:8px;overflow-x:auto;padding:8px}
 #thumbs:empty{display:none}
 #thumbs img{height:84px;border-radius:6px;border:2px solid transparent;cursor:pointer;flex:none}
@@ -117,9 +125,10 @@ details>summary::-webkit-details-marker{display:none}
 details>summary::after{content:"◀";font-size:12px}
 details[open]>summary::after{content:"▼"}
 details[open]>summary{margin-bottom:12px}
-#style-list{max-height:62vh;overflow:auto;margin-top:12px;padding-right:6px}
-#style-list label{font-weight:600;align-items:center;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-#style-preview{position:fixed;z-index:50;width:200px;height:200px;object-fit:cover;border-radius:var(--radius);border:1px solid var(--border2);pointer-events:none;box-shadow:0 8px 24px #000a;background:var(--block)}
+#style-list{max-height:62vh;overflow:auto;margin-top:12px;padding-right:6px;grid-template-columns:repeat(2,minmax(0,1fr))}
+#style-list label{min-width:0;font-weight:600;align-items:center;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+#style-list label span{min-width:0;overflow-wrap:anywhere}
+#style-preview{position:fixed;z-index:50;width:min(200px,calc(100vw - 16px),calc(100dvh - 16px));aspect-ratio:1;object-fit:cover;border-radius:var(--radius);border:1px solid var(--border2);pointer-events:none;box-shadow:0 8px 24px #000a;background:var(--block)}
 .lora{display:grid;grid-template-columns:52px 1fr 1fr}
 .lora>div{padding:10px 12px;min-width:0}
 .lora>div+div{border-left:1px solid var(--border)}
@@ -142,19 +151,54 @@ details[open]>summary{margin-bottom:12px}
 .drop .x,#lb-close{position:absolute;top:4px;right:6px;z-index:3;width:34px;height:34px;padding:0;background:none;border:0;color:#fff;font-size:24px;font-weight:700;line-height:1;
   text-shadow:0 0 3px #000,2px 0 0 #000,-2px 0 0 #000,0 2px 0 #000,0 -2px 0 #000,1.5px 1.5px 0 #000,-1.5px -1.5px 0 #000,1.5px -1.5px 0 #000,-1.5px 1.5px 0 #000}
 .drop .x:hover,#lb-close:hover{background:none;color:#d1d5db}
-.paint{position:relative;display:inline-block;vertical-align:top;line-height:0;touch-action:none;user-select:none;overflow:hidden}
+.paint{position:relative;display:inline-block;vertical-align:top;line-height:0;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;overflow:hidden}
 #inp-drop.has-img{display:block;cursor:default}
-#inp-drop .scroll{overflow:auto;max-height:84vh;text-align:center}
+#inp-drop .scroll{overflow:hidden;overflow-anchor:none;max-height:84vh;max-height:84svh;text-align:center}
 .zoom{display:flex;align-items:center;gap:4px;margin-left:auto}
 .zoom span{min-width:72px;text-align:center;white-space:nowrap}
 .zoom button{width:30px;padding:5px 0}
 .paint img{display:block;max-width:none}
-.paint canvas{position:absolute;inset:0;width:100%;height:100%;opacity:.62;cursor:none}
+.paint canvas{position:absolute;inset:0;width:100%;height:100%}
+.paint-colors{pointer-events:none}
+.paint-mask{opacity:.62;cursor:none}
+.paint.merging{background:repeating-conic-gradient(#2d3541 0 25%,#202631 0 50%) 0 0/20px 20px}
+.paint.merging img,.paint.merging .paint-colors{visibility:hidden}
+.paint.merging .paint-mask{opacity:1}
 .ring{position:absolute;border:1.5px solid #fff;outline:1px solid #000;border-radius:50%;pointer-events:none}
 .ring.erase{border:2px dashed #fff;outline:0;box-shadow:0 0 0 1px #0009}
 .tools button.on{border-color:var(--slider);box-shadow:0 0 0 1px var(--slider)}
 .tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .tools input[type=range]{margin:0;width:180px}
+.tools .paint-tool{display:grid;place-items:center;width:34px;height:32px;padding:0}
+.paint-tool svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.paint-palette{display:grid;place-items:center;width:34px;height:31px;padding:0;background:var(--block)}
+#color-picker{position:fixed;top:var(--picker-top,8px);left:var(--picker-left,8px);z-index:60;width:min(320px,calc(100vw - 16px));
+  display:flex;flex-direction:column;padding:10px 12px;box-shadow:0 5px 20px #0008;max-height:calc(100dvh - 16px)}
+#color-fields{display:grid;gap:8px;min-height:0;overflow-y:auto;padding:1px}
+#color-picker .shead{min-height:32px}
+#color-picker .shead>div{display:flex;align-items:center;gap:8px}
+#color-swatch{width:26px;height:26px;border:1px solid var(--border2);border-radius:5px;color-scheme:only light;forced-color-adjust:none}
+#color-eyedropper{width:34px;height:32px;padding:0;display:grid;place-items:center}
+#color-eyedropper[aria-pressed=true]{border-color:var(--slider);background:var(--blue)}
+#color-picker .color-track{position:relative}
+#color-picker .color-track canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:9px;pointer-events:none;
+  color-scheme:only light;forced-color-adjust:none}
+#color-picker input[type=range]{position:relative;appearance:none;-webkit-appearance:none;margin:0;height:18px;background:transparent;
+  border-radius:9px;touch-action:none;color-scheme:only light;forced-color-adjust:none}
+#color-picker input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:16px;height:18px;border-radius:4px;border:2px solid white;background:#202938;box-shadow:0 0 0 1px #000}
+#color-picker input[type=range]::-moz-range-thumb{width:12px;height:14px;border-radius:4px;border:2px solid white;background:#202938;box-shadow:0 0 0 1px #000}
+#color-picker label{display:grid;gap:2px;min-width:0}
+#color-picker input[type=text]{font-size:16px;padding:4px 8px}
+#color-picker footer{display:flex;justify-content:space-between;gap:8px;flex:none;padding-top:8px}
+#color-apply{background:var(--blue)}
+body.picking-color .paint-mask,body.picking-color #preview-image,body.picking-color #thumbs img,body.picking-color .drop>img{cursor:crosshair}
+body.picking-color .ring{display:none}
+#color-loupe{position:fixed;z-index:61;width:101px;height:101px;pointer-events:none;image-rendering:pixelated;
+  background:#1f2937;border:1px solid #fff;border-radius:7px;box-shadow:0 2px 10px #000b;color-scheme:only light;forced-color-adjust:none}
+@media (pointer:coarse),(max-width:700px){
+  #color-picker{inset:auto 0 var(--keyboard-offset,0px);width:100%;border-radius:var(--radius) var(--radius) 0 0;
+    max-height:var(--visible-height,100dvh);padding-bottom:max(10px,env(safe-area-inset-bottom));box-shadow:0 -3px 12px #0005}
+}
 #meta-box table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:10px}
 #meta-box td{border:1px solid var(--border);padding:4px 8px;vertical-align:top;word-break:break-word}
 #meta-box td:first-child{color:var(--dim);white-space:nowrap}
@@ -170,18 +214,30 @@ details[open]>summary{margin-bottom:12px}
 #history .pager span{color:var(--dim)}
 #history .pager a{color:#60a5fa;text-decoration:underline;cursor:pointer}
 #history .pager a.on{color:#c084fc}
-#history .side{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;align-items:flex-start;align-self:center}
+#history .side{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;align-items:flex-start;align-self:stretch}
+#history .actions{align-self:stretch;margin-top:auto}
+#history .use-actions{margin-left:auto;justify-content:flex-end}
+#history .inpaint-action{position:relative}
+#history .inpaint-targets{position:absolute;z-index:2;top:calc(100% + 4px);right:0;display:grid;gap:4px;
+  padding:4px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--block);white-space:nowrap}
+#history .inpaint-targets.above{top:auto;bottom:calc(100% + 4px)}
 #history .hrow img{cursor:zoom-in}
+#history .hrow.history-focus{outline:2px solid #60a5fa;outline-offset:-2px}
 /* image viewer */
-#lb{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.94);display:flex;flex-direction:column;user-select:none;-webkit-user-select:none}
-#lb-stage{flex:1;position:relative;overflow:hidden;touch-action:none;cursor:grab}
+#lb{--lb-strip-height:98px;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.94);user-select:none;-webkit-user-select:none}
+#lb-stage{position:absolute;inset:0;overflow:hidden;touch-action:none;cursor:grab}
+#lb-frame{position:absolute;inset:0;pointer-events:none}
+#lb.has-thumbs #lb-frame{bottom:var(--lb-strip-height)}
 #lb-stage img{position:absolute;left:50%;top:50%;width:100%;height:100%;object-fit:contain;transform-origin:center;-webkit-user-drag:none}
+#lb-frame img{pointer-events:auto}
+#lb-stage img[draggable=true]{-webkit-user-drag:element;cursor:grab}
 .lb-nav{position:absolute;top:0;bottom:0;width:12%;min-width:44px;z-index:2;background:none;border:0;border-radius:0;font-size:34px;font-weight:400;color:#fff7}
+#lb.has-thumbs .lb-nav{bottom:var(--lb-strip-height)}
 .lb-nav:hover{background:#ffffff0f;color:#fff}
 #lb-prev{left:0} #lb-next{right:0}
 #lb-close{top:8px;right:10px;width:42px;height:42px;font-size:32px}
 #lb-info{position:absolute;top:14px;left:14px;z-index:3;color:#fffb;font-size:13px;pointer-events:none}
-#lb-thumbs{display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;padding:9px 8px;height:98px;flex:none;touch-action:pan-x;scrollbar-width:thin}
+#lb-thumbs{position:absolute;inset:auto 0 0;z-index:4;display:flex;gap:8px;overflow-x:auto;overflow-y:hidden;padding:9px 8px;height:var(--lb-strip-height);touch-action:pan-x;scrollbar-width:thin}
 #lb-thumbs img{height:72px;border-radius:4px;border:3px solid transparent;cursor:pointer;flex:none;opacity:.55}
 #lb-thumbs img:first-child{margin-left:auto}
 #lb-thumbs img:last-child{margin-right:auto}
@@ -202,9 +258,9 @@ input[type=file]{width:100%;font-size:13px;color:var(--dim)}
   #history .meta .k{white-space:normal;max-width:34vw}
 }
 
-@media (orientation:portrait),(max-width:900px){
+@media (orientation:portrait),(max-width:900px),(pointer:coarse){
   #app{flex-direction:column;align-items:stretch;padding:10px}
-  #left{flex:none}
+  #left{flex:none;gap:10px}
   #right{flex:none;max-width:none;width:100%;min-width:0}
   #viewer{height:50vh}
   #prompt-row{flex-direction:column-reverse;gap:10px}
@@ -218,10 +274,26 @@ input[type=file]{width:100%;font-size:13px;color:var(--dim)}
 <div id="app">
   <div id="left">
     <div id="progress" class="block" hidden><div id="bar"><div id="bar-fill"></div><div id="bar-text"></div></div></div>
-    <div id="viewer" class="block"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>
+    <div id="msg" class="block" role="alert" hidden></div>
+    <div id="viewer" class="block">
+      <div id="preview-frame">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        <img id="preview-image" alt="" hidden>
+        <div id="preview-actions" hidden>
+          <button id="preview-trash" class="preview-icon" type="button" title="Delete this image" aria-label="Delete this image">
+            <canvas width="48" height="48" aria-hidden="true"></canvas>
+          </button>
+          <button id="preview-confirm" type="button" title="Confirm permanent deletion" aria-label="Confirm permanent deletion" hidden>✓</button>
+        </div>
+        <button id="preview-to-input" class="preview-icon" type="button" title="Use this image in the selected Input Image tab" aria-label="Use preview as input image" hidden>
+          <canvas width="48" height="48" aria-hidden="true"></canvas>
+        </button>
+      </div>
+      <div id="preview-hint" class="hint" role="status" hidden></div>
+    </div>
     <div id="thumbs" class="block"></div>
     <div id="prompt-row">
-      <textarea id="prompt" placeholder="Type prompt here or paste parameters." autofocus></textarea>
+      <textarea id="prompt" spellcheck="false" autocorrect="off" autocomplete="off" autocapitalize="off" placeholder="Type prompt here or paste parameters." autofocus></textarea>
       <div id="btns">
         <button id="generate">Generate</button>
         <button id="skip" hidden>Skip</button>
@@ -247,23 +319,34 @@ input[type=file]{width:100%;font-size:13px;color:var(--dim)}
       <div class="panel" data-ipanel="inpaint" hidden>
         <div class="drop tall" id="inp-drop"></div>
         <div class="tools" id="inp-tools" hidden>
-          <span>Brush size</span><input type="range" id="brush" min="4" max="200" value="40" title="Brush size (Shift + mouse wheel)">
-          <button class="small on" id="tool-brush" title="Brush (E)">Brush</button><button class="small" id="tool-eraser" title="Eraser (Q)">Eraser</button>
-          <button class="small" id="inp-undo" title="Undo the last stroke (Ctrl+Z)">Undo</button><button class="small" id="inp-clear" title="Clear the mask (Ctrl+Del)">Clear mask</button>
+          <button class="paint-palette" type="button" title="Choose brush color" aria-label="Choose brush color" aria-controls="color-picker" aria-haspopup="dialog" aria-expanded="false">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+              <path d="M12 3a9 9 0 0 0 0 18h1.3a1.7 1.7 0 0 0 1.2-2.9 1.7 1.7 0 0 1 1.2-2.9H18a3 3 0 0 0 3-3A9 9 0 0 0 12 3Z"/><circle cx="7.5" cy="12" r=".8"/><circle cx="10" cy="7.5" r=".8"/><circle cx="15" cy="7.5" r=".8"/>
+              <circle cx="17.5" cy="11.5" r="1.6" fill="var(--paint-color)" stroke="none"/>
+            </svg>
+          </button>
+          <input type="hidden" id="inp-color" value="#e8577b">
+          <input type="range" id="brush" min="4" max="200" value="40" title="Brush size in image pixels (Shift + mouse wheel)" aria-label="Brush size">
+          <button class="small paint-tool on" id="tool-brush" title="Mask (E)" aria-label="Mask" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" stroke-dasharray="2 3"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none"/></svg></button>
+          <button class="small paint-tool" id="tool-eraser" title="Erase mask and color (Q)" aria-label="Eraser" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 15 8.5-9a2 2 0 0 1 2.8 0l4.7 4.5a2 2 0 0 1 0 2.8L14.5 19h-7L4 17.4a1.7 1.7 0 0 1 0-2.4ZM7 12l7.5 7m0 0H21"/></svg></button>
+          <button class="small paint-tool" id="tool-recolor" title="Recolor (R)" aria-label="Recolor" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 11 6-6 7 7-6 6a2 2 0 0 1-2.8 0l-4.2-4.2A2 2 0 0 1 5 11Zm3-8 6 6M5 12h13m1 3c-1.3 1.5-2 2.5-2 3.4a2 2 0 0 0 4 0c0-.9-.7-1.9-2-3.4Z"/></svg></button>
+          <button class="small paint-tool" id="tool-spray" title="Airbrush (W)" aria-label="Airbrush" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2 0V7h5v3M15 7l4-2m-4 4 5 1m-5 1 3 3"/></svg></button>
+          <button class="small paint-tool" id="inp-undo" title="Undo the last stroke (Ctrl+Z)" aria-label="Undo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10h10a5 5 0 0 1 0 10h-3M9 5l-5 5 5 5"/></svg></button>
+          <button class="small paint-tool" id="inp-clear" title="Clear the mask (Ctrl+Del)" aria-label="Clear mask"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3" stroke-dasharray="2 3"/><path d="m9 9 6 6m0-6-6 6"/></svg></button>
           <span class="zoom" title="Zoom: Ctrl + mouse wheel, Ctrl + plus / minus, Ctrl + 0 to reset. Move: hold Space and drag, or two fingers."><button class="small" id="zoom-out" title="Zoom out (Ctrl + minus)">−</button><span id="zoom-val">🔍 100%</span><button class="small" id="zoom-in" title="Zoom in (Ctrl + plus)">+</button></span>
         </div>
         <div class="form">
-          <div class="field"><div class="row"><label><input type="checkbox" id="inp-adv"> Enable Advanced Masking Features</label></div></div>
           <div class="field"><span class="lbl">Method</span><select id="inp-method"></select></div>
-          <div class="field" id="inp-extra-box"><span class="lbl">Inpaint Additional Prompt</span><textarea id="inp-extra" rows="2" placeholder="Describe what you want to inpaint. Used instead of the main prompt."></textarea></div>
+          <div class="field" id="merge-source-box" hidden><span class="lbl">Second Image</span><div class="hint">Cut out the inpaint image to reveal this image underneath.</div><div class="drop" id="merge-drop" style="min-height:140px"></div></div>
+          <div class="field" id="inp-extra-box"><span class="lbl">Inpaint Additional Prompt</span><textarea id="inp-extra" rows="2" spellcheck="false" autocorrect="off" autocomplete="off" autocapitalize="off" placeholder="Describe what you want to inpaint. Used instead of the main prompt."></textarea></div>
           <div class="field" id="inp-engine-box"><div class="row"><label><input type="checkbox" id="inp-engine"> Use Fooocus Inpaint Engine (SDXL models only)</label></div></div>
           <div class="field" id="inp-dirs-box"><span class="lbl">Outpaint Direction</span><div class="pills" id="inp-dirs"></div><div id="inp-pad" style="margin-top:14px"></div></div>
-          <div class="field advm" id="automask-box"><span class="lbl">Mask Generation</span><div class="row" style="flex-wrap:nowrap"><input type="text" id="mask-prompt" placeholder="What to mask, e.g. face, hair, background"><button class="small" id="mask-gen" style="white-space:nowrap">Generate mask</button></div></div>
-          <div class="field advm"><span class="lbl">Mask Upload</span><div class="drop" id="mask-drop" style="min-height:140px"></div></div>
-          <div class="field advm"><div class="row"><label><input type="checkbox" id="inp-invert"> Invert Mask When Generating</label></div></div>
-          <div class="field advm" id="inp-erode"></div>
-          <div class="field advm" id="inp-denoise"></div>
-          <div class="field advm" id="inp-field"></div>
+          <div class="field" id="automask-box" hidden><span class="lbl">Mask Generation</span><div class="row" style="flex-wrap:nowrap"><input type="text" id="mask-prompt" spellcheck="false" autocorrect="off" autocomplete="off" autocapitalize="off" placeholder="What to mask, e.g. face, hair, background"><button class="small" id="mask-gen" style="white-space:nowrap">Generate mask</button></div></div>
+          <div class="field inp-custom" hidden><span class="lbl">Mask Upload</span><div class="drop" id="mask-drop" style="min-height:140px"></div></div>
+          <div class="field inp-custom" hidden><div class="row"><label><input type="checkbox" id="inp-invert"> Invert Mask When Generating</label></div></div>
+          <div class="field inp-custom" id="inp-erode" hidden></div>
+          <div class="field inp-custom" id="inp-denoise" hidden></div>
+          <div class="field inp-custom" id="inp-field" hidden></div>
         </div>
         <div class="note" id="inp-note" style="margin:0;white-space:pre-line" hidden></div>
       </div>
@@ -272,7 +355,6 @@ input[type=file]{width:100%;font-size:13px;color:var(--dim)}
         <div class="form"><div class="field" id="meta-box"></div></div>
       </div></div>
     </div>
-    <div id="msg" class="block" hidden></div>
   </div>
 
   <div id="right">
@@ -288,11 +370,11 @@ input[type=file]{width:100%;font-size:13px;color:var(--dim)}
       <div class="form"><div class="field"><details><summary id="aspect-summary">Aspect Ratios</summary><div class="pills grid2" id="aspects"></div></details></div></div>
       <div class="form">
         <div class="field" id="image-number"></div>
-        <div class="field"><span class="lbl">Negative Prompt</span><div class="hint">Describing what you do not want to see.</div><textarea id="negative" rows="2" placeholder="Type prompt here."></textarea></div>
+        <div class="field"><span class="lbl">Negative Prompt</span><div class="hint">Describing what you do not want to see.</div><textarea id="negative" rows="2" spellcheck="false" autocorrect="off" autocomplete="off" autocapitalize="off" placeholder="Type prompt here."></textarea></div>
         <div class="field"><div class="row"><label><input type="checkbox" id="random"> Random</label></div>
           <div id="seed-box" style="margin-top:10px"><span class="lbl">Seed</span><input type="text" id="seed" inputmode="numeric"></div></div>
       </div>
-      <div><a href="#history" id="history-link" target="_blank">📚 History Log</a></div>
+      <div><a href="#history" id="history-link" target="_blank" rel="opener">📚 History Log</a></div>
     </div>
 
     <div class="panel" data-panel="style" hidden>
@@ -329,6 +411,31 @@ input[type=file]{width:100%;font-size:13px;color:var(--dim)}
     </div>
   </div>
 </div>
+<section id="color-picker" class="block" role="dialog" aria-label="Brush color" hidden>
+  <div id="color-fields">
+    <div class="shead"><div><canvas id="color-swatch" width="24" height="24" aria-hidden="true"></canvas><span id="color-status" aria-live="polite">Brush color</span></div>
+      <button type="button" id="color-eyedropper" class="paint-tool" title="Pick a color from an image" aria-label="Eyedropper" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m13 8 3 3m-7 6-4 2 2-4 8-8-1-1 2-2a2.8 2.8 0 0 1 4 4l-2 2-1-1-8 8Z"/></svg></button>
+    </div>
+    <div class="color-track">
+      <canvas id="hue-track" width="720" height="1" aria-hidden="true"></canvas>
+      <input id="color-hue" type="range" min="0" max="360" aria-label="Hue" title="Hue">
+    </div>
+    <div class="color-track">
+      <canvas id="saturation-track" width="720" height="1" aria-hidden="true"></canvas>
+      <input id="color-saturation" type="range" min="0" max="100" aria-label="Saturation" title="Saturation">
+    </div>
+    <div class="color-track">
+      <canvas id="lightness-track" width="720" height="1" aria-hidden="true"></canvas>
+      <input id="color-lightness" type="range" min="0" max="100" aria-label="Lightness" title="Lightness">
+    </div>
+    <div class="grid2">
+      <label>Hex<input id="color-hex" type="text" enterkeyhint="done" autocapitalize="off" spellcheck="false" autocomplete="off"></label>
+      <label>RGB<input id="color-rgb" type="text" enterkeyhint="done" autocapitalize="off" spellcheck="false" autocomplete="off"></label>
+    </div>
+  </div>
+  <footer><button type="button" id="color-cancel">Cancel</button><button type="button" id="color-apply">Apply</button></footer>
+</section>
+<canvas id="color-loupe" width="99" height="99" aria-hidden="true" hidden></canvas>
 <img id="style-preview" hidden alt="">
 
 <script>
@@ -336,6 +443,7 @@ input[type=file]{width:100%;font-size:13px;color:var(--dim)}
 // ---------- pure logic: workflow analysis and building (no DOM) ----------
 const FILE_RE = /\.(safetensors|sft|ckpt|pt|pth|gguf|bin)$/i;
 const TEXT_KEYS = ['text', 'text_g', 'text_l', 'prompt'];
+const NEGATIVE_INPUTS = ['conditioning', 'negative', 'conditioning_1', 'conditioning_to'];
 
 const TEMPLATES = {
   'SDXL': {
@@ -402,7 +510,7 @@ function analyze(wf) {
   const s = wf[samplerId].inputs;
   const isText = n => n.inputs && TEXT_KEYS.some(k => k in n.inputs);
   const posId = trace(wf, s.positive, ['conditioning', 'positive', 'conditioning_1', 'conditioning_to'], isText);
-  let negId = trace(wf, s.negative, ['conditioning', 'negative', 'conditioning_1', 'conditioning_to'], isText);
+  let negId = trace(wf, s.negative, NEGATIVE_INPUTS, isText);
   if (negId === posId) negId = null;
   const modelRoot = rootOf(wf, s.model, 'model');
   const clipRoot = posId && isLink(wf[posId].inputs.clip) ? rootOf(wf, wf[posId].inputs.clip, 'clip') : null;
@@ -474,27 +582,34 @@ function buildPrompt(wf, a, p) {
       }
     }
   }
-  // Image input modes: vary / upscale (img2img) and inpaint (crop -> sample masked area -> paste back).
+  // Image input modes: vary / upscale (img2img) and inpaint.
   const m = p.i2i;
   if (m) {
     if (!a.vae || !a.decodeId) throw new Error('This workflow has no VAE Decode right after the sampler, which the image input modes need.');
     const scale = (img, w, h) => add('ImageScale', {image: img, upscale_method: 'lanczos', width: w, height: h, crop: 'disabled'});
     const li = add('LoadImage', {image: m.image});
     if (m.kind === 'inpaint') {
-      const c = m.crop, lm = add('LoadImage', {image: m.mask});
-      const ci = add('ImageCrop', {image: [li, 0], width: c.w, height: c.h, x: c.x, y: c.y});
-      const cm = add('ImageCrop', {image: [lm, 0], width: c.w, height: c.h, x: c.x, y: c.y});
-      const hard = add('ImageToMask', {image: [scale([cm, 0], m.work.w, m.work.h), 0], channel: 'red'});
-      const soft = add('ImageToMask', {image: [cm, 0], channel: 'green'});
-      const enc = add('VAEEncode', {pixels: [scale([ci, 0], m.work.w, m.work.h), 0], vae});
+      if (p.negative && (!a.negId || trace(out, s.negative, NEGATIVE_INPUTS, n => n.class_type === 'ConditioningZeroOut'))) {
+        const encoder = out[a.negId || a.posId];
+        if (!encoder) throw new Error('Inpaint needs a text encoder for the negative prompt.');
+        const id = add(encoder.class_type, {...encoder.inputs});
+        setText(id, p.negative);
+        s.negative = [id, 0];
+      }
+      const lm = add('LoadImage', {image: m.mask});
+      const k = Math.sqrt(1024 * 1024 / (m.width * m.height)), r16 = v => Math.max(256, Math.round(v / 16) * 16);
+      const w = r16(m.width * k), h = r16(m.height * k);
+      const hard = add('ImageToMask', {image: [scale([lm, 0], w, h), 0], channel: 'red'});
+      const soft = add('ImageToMask', {image: [lm, 0], channel: 'green'});
+      const enc = add('VAEEncode', {pixels: [scale([li, 0], w, h), 0], vae});
       s.latent_image = [add('SetLatentNoiseMask', {samples: [enc, 0], mask: [hard, 0]}), 0];
       // grey mask values become per-pixel denoising strength (soft transition into the original)
       if (m.differential) s.model = [add('DifferentialDiffusion', {model: s.model}), 0];
       // optional Fooocus inpaint patch (ComfyUI Inpaint Nodes extension)
       if (m.engine) s.model = [add('INPAINT_ApplyFooocusInpaint', {model: s.model,
         patch: [add('INPAINT_LoadFooocusInpaint', {head: m.engine.head, patch: m.engine.patch}), 0], latent: s.latent_image}), 0];
-      const back = scale([a.decodeId, 0], c.w, c.h);
-      const comp = add('ImageCompositeMasked', {destination: [li, 0], source: [back, 0], x: c.x, y: c.y, resize_source: false, mask: [soft, 0]});
+      const back = scale([a.decodeId, 0], m.width, m.height);
+      const comp = add('ImageCompositeMasked', {destination: [li, 0], source: [back, 0], x: 0, y: 0, resize_source: false, mask: [soft, 0]});
       for (const [id, n] of Object.entries(out)) {
         if (id === back) continue;
         for (const [k, v] of Object.entries(n.inputs || {})) if (sameLink(v, [a.decodeId, 0])) n.inputs[k] = [comp, 0];
@@ -510,14 +625,16 @@ function buildPrompt(wf, a, p) {
   return out;
 }
 
-// "Upscale (Fast 2x)": no sampling, just the upscale model and a resize.
-function buildFastUpscale(info, m) {
+function buildImageOutput(info, m) {
   const g = {}; let next = 1;
   const add = (cls, inputs) => { const id = String(next++); g[id] = {class_type: cls, inputs: withDefaults(info, cls, inputs)}; return id; };
   let src = [add('LoadImage', {image: m.image}), 0];
-  if (m.upscaler) src = [add('ImageUpscaleWithModel', {upscale_model: [add('UpscaleModelLoader', {model_name: m.upscaler}), 0], image: src}), 0];
-  const sc = add('ImageScale', {image: src, upscale_method: 'lanczos', width: m.width, height: m.height, crop: 'disabled'});
-  add('SaveImage', {filename_prefix: 'Fooocus', images: [sc, 0]});
+  if (m.kind === 'merge') src = [add('JoinImageWithAlpha', {image: src, alpha: [src[0], 1]}), 0];
+  if (m.kind === 'fast') {
+    if (m.upscaler) src = [add('ImageUpscaleWithModel', {upscale_model: [add('UpscaleModelLoader', {model_name: m.upscaler}), 0], image: src}), 0];
+    src = [add('ImageScale', {image: src, upscale_method: 'lanczos', width: m.width, height: m.height, crop: 'disabled'}), 0];
+  }
+  add('SaveImage', {filename_prefix: 'Fooocus', images: src});
   return g;
 }
 
@@ -535,12 +652,12 @@ function withDefaults(info, cls, inputs) {
   return inputs;
 }
 
-function applyStyles(prompt, negative, styles) {
+function applyStyles(prompt, negative, styles, stylePositive = true) {
   let pos = (prompt || '').trim();
   const neg = [(negative || '').trim()];
   for (const st of styles) {
     const t = (st.prompt || '').trim();
-    if (t) pos = t.includes('{prompt}') ? t.replace('{prompt}', pos) : (pos ? pos + ', ' + t : t);
+    if (stylePositive && t) pos = t.includes('{prompt}') ? t.replace('{prompt}', pos) : (pos ? pos + ', ' + t : t);
     if (st.negative_prompt) neg.push(st.negative_prompt.trim());
   }
   return {positive: pos, negative: neg.filter(Boolean).join(', ')};
@@ -601,6 +718,20 @@ function parsePngText(buf) {
   return out;
 }
 const cleanMeta = m => Object.fromEntries(Object.entries(m).filter(([, v]) => v != null && v !== ''));
+const hasMetaValue = v => v != null && (typeof v !== 'string' || v.trim() !== '') && (!Array.isArray(v) || v.length > 0);
+const imageName = name => String(name ?? '').split(/[\\/]/).pop();
+const INPAINT_PROMPT = 'Inpaint Prompt';
+const INPAINT_PROMPT_KEYS = [INPAINT_PROMPT, 'Inpaint prompt', 'inpaint_prompt'];
+const isInpaintMeta = m => INPAINT_PROMPT_KEYS.some(key => key in m) || /inpaint|outpaint/i.test(m['Input Image'] || '');
+function normalizeInpaintMeta(m) {
+  if (!isInpaintMeta(m)) return m;
+  const key = INPAINT_PROMPT_KEYS.find(k => k in m) || 'Prompt';
+  if (!(key in m)) return m;
+  const rest = {...m};
+  for (const name of INPAINT_PROMPT_KEYS) delete rest[name];
+  delete rest.Prompt;
+  return {[INPAINT_PROMPT]: m[key], ...rest};
+}
 function metaFromGraph(wf) {
   const a = analyze(wf), s = wf[a.samplerId].inputs;
   const txt = id => id ? TEXT_KEYS.map(k => wf[id].inputs[k]).find(v => typeof v === 'string') || '' : '';
@@ -637,20 +768,19 @@ function parseA1111(text) {
 }
 function metaFromChunks(ch) {
   const j = t => { try { return JSON.parse(t); } catch (e) { return null; } };
-  if (ch.fooocus) { const m = j(ch.fooocus); if (m && typeof m === 'object') return m; }
+  if (ch.fooocus) { const m = j(ch.fooocus); if (m && typeof m === 'object') return normalizeInpaintMeta(m); }
   if (ch.prompt) { const g = j(ch.prompt); if (g) try { return metaFromGraph(g); } catch (e) {} }
   if (ch.parameters) { const d = j(ch.parameters); return d && typeof d === 'object' ? metaFromFooocus(d) : parseA1111(ch.parameters); }
   return null;
 }
 
-// Inpaint region: mask bounding box plus context, grown towards the whole image by `field` (0..1).
-function inpaintRegion(bx0, by0, bx1, by1, W, H, field) {
+// Keep feathering relative to the padded mask bounds, expanded by `field` (0..1).
+function inpaintFeatherRadius(bx0, by0, bx1, by1, W, H, field) {
   const pad = Math.max(32, 0.15 * Math.max(bx1 - bx0, by1 - by0));
   let x0 = Math.max(0, bx0 - pad), y0 = Math.max(0, by0 - pad), x1 = Math.min(W, bx1 + pad), y1 = Math.min(H, by1 + pad);
   x0 *= 1 - field; y0 *= 1 - field; x1 += (W - x1) * field; y1 += (H - y1) * field;
   x0 = Math.floor(x0); y0 = Math.floor(y0); x1 = Math.ceil(x1); y1 = Math.ceil(y1);
-  const w = x1 - x0, h = y1 - y0, k = Math.sqrt(1024 * 1024 / (w * h)), r16 = v => Math.max(256, Math.round(v / 16) * 16);
-  return {crop: {x: x0, y: y0, w, h}, work: {w: r16(w * k), h: r16(h * k)}};
+  return Math.max(6, Math.round(0.02 * Math.max(x1 - x0, y1 - y0)));
 }
 
 // ---------- prompt tag check ----------
@@ -716,10 +846,12 @@ const STYLE_FILES = ['fooocus', 'sai', 'mre', 'twri', 'diva', 'marc_k3nt3l'].map
 const RANDOM_STYLE = 'Random Style';
 const UOV = ['Disabled', 'Vary (Subtle)', 'Vary (Strong)', 'Upscale (1.5x)', 'Upscale (2x)', 'Upscale (Fast 2x)'];
 const NO_UPSCALER = 'None (Lanczos resize)';
-const INPAINT_METHODS = {       // label, denoising strength, respective field
+const INPAINT_METHODS = {       // label, denoising strength, feathering field
   default: ['Inpaint or Outpaint (default)', 1, 0.618],
   detail: ['Improve Detail (face, hand, eyes, etc.)', 0.5, 0],
-  modify: ['Modify Content (add objects, change background, etc.)', 1, 0]
+  modify: ['Modify Content (add objects, change background, etc.)', 1, 0],
+  merge: ['Merge Pictures (combine using a cut-out)'],
+  custom: ['Custom (detailed settings)', 1, 0.618]
 };
 const TAGGERS = ['WD14Tagger|pysssss'];   // caption nodes Describe can use (not part of vanilla ComfyUI)
 // Offline fallback only: an approximate subset, used until the original Fooocus styles are fetched.
@@ -751,8 +883,13 @@ const state = Object.assign({
   prompt: '', negative: '', performance: 'Speed', aspect: '1152×896', imageNumber: 2, random: true, seed: '0',
   customSteps: 30, customW: 1024, customH: 1024, tagCheck: false, advanced: true, tab: 'setting', workflow: 'SDXL', customWfs: {}, perWf: {}, userStyles: [],
   inputImage: false, itab: 'uov', uov: 'Disabled', upscaler: null,
-  inpaint: {advanced: false, method: 'default', extra: '', dirs: [], invert: false, erode: 0, denoise: 1, field: 0.618}
+  inpaint: {method: 'default', extra: '', dirs: [], invert: false, erode: 0}
 }, lsGet(LS_KEY, {}));
+if ('denoise' in state.inpaint) {
+  const o = state.inpaint;
+  if (o.denoise !== INPAINT_METHODS[o.method][1]) o.denoiseOverride = o.denoise;
+  delete o.denoise;
+}
 if (state.performance !== CUSTOM && !PERF[state.performance]) state.performance = 'Speed';
 if (state.aspect !== CUSTOM && !ASPECTS.includes(state.aspect)) state.aspect = '1152×896';
 const clampInt = (v, lo, hi, def) => { v = Math.round(Number(v)); return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def; };
@@ -835,6 +972,9 @@ function el(tag, props, ...kids) {
   for (const k of kids) e.append(k);
   return e;
 }
+const externalLink = (textContent, href) => el('a', {textContent, href, target: '_blank', rel: 'noopener noreferrer'});
+const FOOOCUS_UI_URL = 'https://github.com/Tand-Anthros/comfy-fooocus-ui';
+const WD14_URL = 'https://github.com/pythongosssss/ComfyUI-WD14-Tagger';
 function fillSelect(sel, options, value, label) {
   sel.innerHTML = '';
   const list = options.includes(value) || value == null ? options : [value, ...options];
@@ -966,7 +1106,10 @@ function renderTagBox() {
   box.append(el('div', {className: 'row'}, el('label', null, c, ' Tag correctness check')),
     note('Underlines prompt tags that are not in the booru tag list. Not checked: sentences that start with a capital letter and end with a period, and a (comment) written after a tag.'));
   if (!state.tagCheck) return;
-  if (tagInfo.state === 'none') { box.append(note('Needs the fooocus-ui extension installed in ComfyUI (the tag list and your dictionary are kept on the server).', 'warn')); return; }
+  if (tagInfo.state === 'none') {
+    box.append(el('div', {className: 'warn'}, 'Install ', externalLink('fooocus-ui', FOOOCUS_UI_URL), ' in ComfyUI to use the server tag list and dictionary.'));
+    return;
+  }
   if (tagInfo.state !== 'ready') { box.append(note('Loading the tag list …')); return; }   // also before the first connection
   box.append(tagInfo.count ? note(`${tagInfo.count.toLocaleString()} tags loaded (${tagInfo.files.join(', ')}).`) : note('No booru tag list on the server yet, so nothing is checked.', 'warn'));
   if (tagInfo.missing.length) {
@@ -1027,7 +1170,7 @@ async function api(path, body) {
   const r = await fetch(base() + path, body === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const text = await r.text();
   let data = null; try { data = text ? JSON.parse(text) : null; } catch (e) {}
-  if (!r.ok) { const err = new Error('HTTP ' + r.status); err.data = data; throw err; }
+  if (!r.ok) { const err = new Error('HTTP ' + r.status); err.data = data; err.status = r.status; throw err; }
   return data;
 }
 function setConn(cls, text) { const c = $('#conn'); c.className = cls; c.querySelector('span').textContent = text; }
@@ -1065,6 +1208,7 @@ async function connect() {
   openWS();
   await fetchServerStyles();
   try { hasThumbs = (await fetch(base() + '/fooocus/ping')).ok; } catch (e) { hasThumbs = false; }
+  showCurrent();
   renderLoraManage();
   loadTags();
   return true;
@@ -1095,6 +1239,7 @@ function setBusy(on) {
   $('#generate').hidden = on; $('#skip').hidden = !on; $('#stop').hidden = !on; $('#progress').hidden = !on;
   if (on) startLive(); else endLive();
   if (!on && previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+  if (!on) renderPreviewHint();
 }
 function updateBar(text) {
   if (!job) return;
@@ -1106,6 +1251,25 @@ function updateBar(text) {
     : `Preparing image ${Math.min(done + 1, total)}/${total} …`);
 }
 function randomSeed() { return Math.floor(Math.random() * 2 ** 50); }
+const PREVIEW_DECODERS = {
+  Anima: {prefix: 'lighttaew2_1', file: 'lighttaew2_1.safetensors', url: 'https://huggingface.co/lightx2v/Autoencoders/blob/main/lighttaew2_1.safetensors'},
+  SDXL: {prefix: 'taesdxl_decoder', file: 'taesdxl_decoder.pth', url: 'https://github.com/madebyollin/taesd/blob/main/taesdxl_decoder.pth'}
+};
+function renderPreviewHint() {
+  const hint = $('#preview-hint');
+  if (!job?.previewMethod) { hint.hidden = true; return; }
+  const workflow = job.previewWorkflow, decoder = PREVIEW_DECODERS[workflow], report = job.previewReport;
+  const missing = decoder && job.previewMethod !== 'taesd' && (job.previewDecoderChecked || report?.small);
+  hint.hidden = !missing && !report?.small;
+  if (hint.hidden) return;
+  const text = (report?.small ? report.text : '') + (missing ? `For sharper ${workflow} live previews, download `
+    : report?.capped ? 'For a larger live preview, start ComfyUI with --preview-size 1024.' : '');
+  const file = missing ? decoder.file : '';
+  if (hint.dataset.text === text && hint.dataset.file === file) return;
+  hint.dataset.text = text; hint.dataset.file = file;
+  hint.replaceChildren(text);
+  if (missing) hint.append(externalLink(file, decoder.url), ' and put it in models/vae_approx.');
+}
 
 async function generate() {
   if (job) return;
@@ -1113,9 +1277,10 @@ async function generate() {
   let wf, a;
   try { wf = currentWf(); a = analyze(wf); } catch (e) { showMsg(e.message); return; }
   const st = wfState(), perf = currentPerf();
+  const merging = state.inputImage && state.itab === 'inpaint' && isMergeMode();
   let [width, height] = currentSize();
   const seed = state.random ? randomSeed() : Math.max(0, Math.floor(Number(state.seed)) || 0);
-  if (state.random) { state.seed = String(seed); $('#seed').value = state.seed; save(); }
+  if (!merging && state.random && !state.seedImported) { state.seed = String(seed); $('#seed').value = state.seed; save(); }
   const pool = realStyles();
   const steps = perf.steps;
   const cfg = perf.cfg != null ? perf.cfg : st.cfg;
@@ -1126,46 +1291,72 @@ async function generate() {
   if (xs && tb.on !== false && tb.name && tb.name !== 'None' && tb.weight !== 0 && !loras.some(l => l.name === tb.name)) loras.push({name: tb.name, weight: tb.weight});
   const mainFile = a.fileFields.find(f => f.main);
   let n = Math.max(1, state.imageNumber | 0);
-  const j = job = {ids: [], done: new Set(), got: {}, meta: {}, posting: true, step: 0, max: 0, total: n};
-  const fail = msg => { if (job === j) { job = null; setBusy(false); } if (msg) showMsg(msg); };
+  const j = job = {ids: [], done: new Set(), got: {}, meta: {}, posting: true, step: 0, max: 0, total: n,
+    previewWorkflow: state.workflow};
+  const fail = msg => { if (job !== j) return; job = null; setBusy(false); if (msg) showMsg(msg); };
   setBusy(true); updateBar('Waiting for task to start …');
   if (!info && !(await connect())) return fail();
   if (!(await wsReady)) return fail('WebSocket connection to ComfyUI failed.');
-  let i2i = null, mode = '', prompt = state.prompt, noStyles = false;
+  let i2i = null, mode = '', prompt = state.prompt, stylePositive = true, inputNames = {};
   if (state.inputImage) {
     try {
-      if (state.itab === 'uov' && state.uov !== 'Disabled' && slots.uov) { updateBar('Uploading image …'); i2i = await prepareUov(); mode = state.uov; }
-      else if (state.itab === 'inpaint' && slots.inp) {
-        updateBar('Preparing mask …');
-        i2i = await prepareInpaint(); mode = i2i.outpaint ? 'Outpaint' : 'Inpaint';
-        const o = state.inpaint, extra = o.extra.trim();
-        if (o.method === 'modify') { prompt = extra; noStyles = true; }   // only what is typed for the masked area
-        else if (extra) prompt = extra;
+      if (state.itab === 'uov' && state.uov !== 'Disabled' && slots.uov) {
+        inputNames = {'Input Image Name': imageName(slots.uov.file.name)};
+        updateBar('Uploading image …'); i2i = await prepareUov(); mode = state.uov;
+      }
+      else if (state.itab === 'inpaint' && (slots.inp || merging)) {
+        inputNames = merging ? {'First Image Name': imageName(slots.inp?.file.name), 'Second Image Name': imageName(slots.merge?.file.name)}
+          : {'Input Image Name': imageName(slots.inp.file.name), 'Mask Name': state.inpaint.method === 'custom' ? imageName(slots.mask?.file.name) : ''};
+        updateBar(merging ? 'Merging pictures …' : 'Preparing mask …');
+        j.preparation = new AbortController();
+        i2i = await (merging ? prepareMerge : prepareInpaint)(j.preparation.signal);
+        j.preparation = null;
+        mode = merging ? 'Merge Pictures' : i2i.kind === 'paint' ? 'Paint' : i2i.outpaint ? 'Outpaint' : 'Inpaint';
+        if (!merging) {
+          const o = state.inpaint, extra = o.extra.trim();
+          if (o.method === 'modify') { prompt = extra; stylePositive = false; }
+          else if (extra) prompt = extra;
+        }
       }
     } catch (e) { return fail(e.data ? describeError(e) : e.message); }
   }
   if (job !== j) return;
-  if (i2i) { width = i2i.width; height = i2i.height; if (i2i.kind === 'fast') n = 1; }
+  j.previewCrop = i2i?.previewCrop;
+  const paintOnly = i2i?.kind === 'paint' || i2i?.kind === 'merge', direct = paintOnly || i2i?.kind === 'fast';
+  if (i2i) { width = i2i.width; height = i2i.height; if (direct) n = 1; }
+  let previewMethod = 'auto', decoderChecked = false;
+  const decoder = PREVIEW_DECODERS[j.previewWorkflow];
+  if (decoder && !direct) {
+    const files = await api('/models/vae_approx').catch(() => null);
+    decoderChecked = Array.isArray(files);
+    if (decoderChecked && files.some(name => name.startsWith(decoder.prefix))) previewMethod = 'taesd';
+  }
+  if (job !== j) return;
+  j.previewMethod = direct ? null : previewMethod;
+  j.previewDecoderChecked = decoderChecked; j.previewTarget = Math.max(width, height);
+  renderPreviewHint();
   j.total = n; updateBar('Waiting for task to start …');
   for (let i = 0; i < n; i++) {
-    const styles = noStyles ? [] : st.styles.map(name => name === RANDOM_STYLE ? pool[Math.floor(Math.random() * pool.length)] : pool.find(s => s.name === name)).filter(Boolean);
-    const text = applyStyles(prompt, state.negative, styles);
-    const meta = cleanMeta({
-      'Prompt': prompt, 'Negative Prompt': state.negative, 'Styles': styles.map(s => s.name).join(', '),
-      'Performance': state.performance, 'Steps': steps, 'Resolution': `${width}×${height}`, 'Guidance Scale': cfg,
+    const styles = st.styles.map(name => name === RANDOM_STYLE ? pool[Math.floor(Math.random() * pool.length)] : pool.find(s => s.name === name)).filter(Boolean);
+    const text = applyStyles(prompt, state.negative, styles, stylePositive);
+    const inpaint = i2i?.kind === 'inpaint';
+    const guidance = inpaint && text.negative && cfg <= 1 ? 1.5 : cfg;
+    const meta = cleanMeta(paintOnly ? {'Input Image': mode, 'Resolution': `${width}×${height}`, ...inputNames} : {
+      [inpaint ? INPAINT_PROMPT : 'Prompt']: prompt, 'Negative Prompt': state.negative, 'Styles': styles.map(s => s.name).join(', '),
+      'Performance': state.performance, 'Steps': steps, 'Resolution': `${width}×${height}`, 'Guidance Scale': guidance,
       'Sampler': sampler, 'Scheduler': scheduler, 'Seed': String(seed + i), 'Workflow': state.workflow,
       'Base Model': mainFile ? st.files[mainFile.id + '.' + mainFile.field] || '' : '', 'VAE': vaeName,
-      'LoRAs': loras.map(l => `${l.name} : ${l.weight}`).join(', '), 'CLIP Skip': st.clipSkip || '', 'Input Image': mode
+      'LoRAs': loras.map(l => `${l.name} : ${l.weight}`).join(', '), 'CLIP Skip': st.clipSkip || '', 'Input Image': mode, ...inputNames
     });
     let graph;
     try {
-      graph = i2i && i2i.kind === 'fast' ? buildFastUpscale(info, i2i) : buildPrompt(wf, a, {
-        positive: text.positive, negative: text.negative, width, height, steps, cfg, seed: seed + i,
+      graph = direct ? buildImageOutput(info, i2i) : buildPrompt(wf, a, {
+        positive: text.positive, negative: text.negative, width, height, steps, cfg: guidance, seed: seed + i,
         sampler, scheduler, files: st.files, vae: vaeName, clipSkip: st.clipSkip || 0, prefix: 'Fooocus', loras, i2i, info});
     } catch (e) { showMsg(e.message); break; }
     try {
       // preview_method asks ComfyUI for live previews for this job even if it was started without --preview-method
-      const res = await api('/prompt', {prompt: graph, client_id: clientId, extra_data: {preview_method: 'auto', extra_pnginfo: {fooocus: meta}}});
+      const res = await api('/prompt', {prompt: graph, client_id: clientId, extra_data: {preview_method: previewMethod, extra_pnginfo: {fooocus: meta}}});
       if (job !== j) return;                          // stopped meanwhile
       j.ids.push(res.prompt_id); j.meta[res.prompt_id] = meta;
     } catch (e) { showMsg(describeError(e)); break; }
@@ -1204,6 +1395,7 @@ async function markDone(id) {
   if (!j.got[id]) {                                   // fully cached run: outputs come from history
     try {
       const h = await api('/history/' + id);
+      if (job !== j) return;
       for (const o of Object.values((h && h[id] && h[id].outputs) || {})) (o.images || []).forEach(im => addImage(im, j.meta[id]));
     } catch (e) {}
   }
@@ -1223,15 +1415,26 @@ async function stop() {
   }
   if (!job) return;
   const rest = job.ids.filter(i => !job.done.has(i));
+  job.preparation?.abort();
   job = null; setBusy(false); showCurrent();
   try { if (rest.length) await api('/queue', {delete: rest}); await api('/interrupt', {}); } catch (e) {}
 }
 
 // ---------- gallery ----------
-const images = [];              // newest first
+const images = [];              // {url, t, thumb}, newest first
+const outputChanges = new BroadcastChannel('fooocus-output-changes');
 const LIVE = 'live';            // "current" value while following the picture that is being generated
 let current = null, liveThumb = null, liveSrc = '';
+const deleteConfirmTimers = new WeakMap();
 const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+function drawPreviewIcon(button, outline, width, detail) {
+  // Chromium's forced dark mode preserves the canvas pixels.
+  const ctx = button.querySelector('canvas').getContext('2d'), shape = new Path2D(outline);
+  ctx.fillStyle = '#fff'; ctx.strokeStyle = '#000';
+  ctx.lineJoin = ctx.lineCap = 'round'; ctx.lineWidth = width;
+  ctx.fill(shape); ctx.stroke(shape);
+  if (detail) { ctx.lineWidth = 2.5; ctx.stroke(new Path2D(detail)); }
+}
 function startLive() {
   if (liveThumb) return;
   liveSrc = '';
@@ -1243,48 +1446,151 @@ function startLive() {
 function endLive() {
   if (!liveThumb) return;
   liveThumb.remove(); liveThumb = null; liveSrc = '';
-  if (current === LIVE) current = images[0] || null;
+  if (current === LIVE) current = images[0]?.url || null;
   showCurrent();
 }
 function setLive(src) {
   liveSrc = src;
-  if (liveThumb) liveThumb.src = src;
-  if (current === LIVE) setViewer(src, null);
+  if (liveThumb) liveThumb.src = versionedUrl(src, images.find(im => im.url === src)?.t);
+  if (current === LIVE) showCurrent();
 }
 function addImage(im, meta) {
   const url = viewUrl(base(), im);
-  if (images.includes(url)) return;
-  images.unshift(url);
-  if (meta && (im.type || 'output') === 'output') {
-    const log = lsGet(LOG_KEY, []);
-    log.push({t: Date.now(), server: base(), im: {filename: im.filename, subfolder: im.subfolder || '', type: 'output'}, meta});
-    if (log.length > 3000) log.splice(0, log.length - 3000);
-    lsSet(LOG_KEY, log);
+  const old = images.findIndex(entry => entry.url === url);
+  if (old >= 0) images.splice(old, 1)[0].thumb.remove();
+  const t = Date.now();
+  if ((im.type || 'output') === 'output') {
+    if (meta) {
+      const log = lsGet(LOG_KEY, []).filter(e => viewUrl(e.server, e.im) !== url);
+      log.push({t, server: base(), im: {filename: im.filename, subfolder: im.subfolder || '', type: 'output'}, meta});
+      if (log.length > 3000) log.splice(0, log.length - 3000);
+      lsSet(LOG_KEY, log);
+    }
+    outputChanges.postMessage({url});
   }
-  const t = thumbImg(url, 0, {loading: 'lazy'});
-  t.dataset.url = url;
-  t.onclick = () => { current = url; showCurrent(); };
-  if (liveThumb) { liveThumb.after(t); setLive(url); }  // the finished picture stays in the live slot until the next preview arrives
-  else { $('#thumbs').prepend(t); if (!current || current === LIVE) current = url; }
+  const thumb = thumbImg(url, t, {loading: 'lazy'});
+  images.unshift({url, t, thumb});
+  thumb.dataset.url = url;
+  thumb.onclick = () => { current = url; showCurrent(); };
+  if (liveThumb) {
+    if (job) job.previewFrame = null;
+    liveThumb.after(thumb); setLive(url);
+  }
+  else { $('#thumbs').prepend(thumb); if (!current || current === LIVE) current = url; }
   showCurrent();
 }
 function setViewer(src, link) {
-  const v = $('#viewer');
-  let img = v.querySelector('img');
-  if (!img) { v.innerHTML = ''; img = el('img'); v.append(img); }
-  if (img.getAttribute('src') !== src) img.src = src;
+  const img = $('#preview-image'), actions = $('#preview-actions');
+  const changed = img.getAttribute('src') !== src;
+  if (!src) img.removeAttribute('src');
+  else if (changed) img.src = src;
+  img.hidden = !src;
+  $('#preview-frame > svg').toggleAttribute('hidden', !!src);
   img.style.cursor = link ? 'zoom-in' : 'default';
-  img.onclick = link ? () => openViewer(images.map(u => ({url: u})), Math.max(0, images.indexOf(link))) : null;
+  img.onclick = link ? () => openViewer(images, images.findIndex(im => im.url === link)) : null;
+  const target = hasThumbs && link?.startsWith(base() + '/view?') && new URL(link, location.href).searchParams.get('type') === 'output' ? link : '';
+  if (changed || actions.dataset.url !== target) hideDeleteConfirm($('#preview-confirm'));
+  actions.dataset.url = target;
+  $('#preview-to-input').hidden = !src;
+  actions.hidden = !target;
 }
 function showCurrent() {
-  if (current === LIVE) { if (liveSrc) setViewer(liveSrc, images.includes(liveSrc) ? liveSrc : null); }
-  else if (current) setViewer(current, current);
+  const url = current === LIVE ? liveSrc : current;
+  const image = images.find(im => im.url === url);
+  setViewer(versionedUrl(url, image?.t), image?.url);
   for (const t of $('#thumbs').children) t.classList.toggle('sel', t === liveThumb ? current === LIVE : t.dataset.url === current);
 }
-function onPreview(buf) {
-  if (!job) return;
-  const blob = parsePreview(buf);
+async function usePreviewAsInput() {
+  const src = $('#preview-image').getAttribute('src'), tab = state.itab, key = INPUT_SLOTS[tab];
+  const button = $('#preview-to-input');
+  if (!src || !key || button.disabled) return;
+  const previous = slots[key];
+  button.disabled = true;
+  showMsg('');
+  try {
+    const file = await fileFromImage(src);
+    if (slots[key] !== previous) return;
+    const input = await drops[key].take(file);
+    if (!input) return;
+    if (!state.inputImage) { state.inputImage = true; save(); renderInputPanel(); }
+    if (state.itab === tab) {
+      if (key === 'inp') { inpLayout(); inpFocus = true; input.box.scrollIntoView({block: 'center'}); }
+      else $(`#${key}-drop`).scrollIntoView({block: 'nearest'});
+    }
+  } catch (e) { showMsg('Could not use preview as input image: ' + e.message); }
+  finally { button.disabled = false; }
+}
+async function deleteOutputImage({filename, subfolder}) {
+  const url = viewUrl(base(), {filename, subfolder, type: 'output'});
+  try { await api('/fooocus/history/delete', {filename, subfolder}); }
+  catch (e) { if (e.status !== 404) throw e; }
+  lsSet(LOG_KEY, lsGet(LOG_KEY, []).filter(e => viewUrl(e.server, e.im) !== url));
+  outputChanges.postMessage({url, deleted: true});
+}
+function removeGalleryImage(url) {
+  const index = images.findIndex(im => im.url === url);
+  if (index < 0) return;
+  images.splice(index, 1)[0].thumb.remove();
+  if (liveSrc === url) { liveSrc = ''; if (liveThumb) liveThumb.src = BLANK; }
+  if (current === url || (current === LIVE && !liveSrc)) current = (images[index] || images[index - 1])?.url || (liveThumb ? LIVE : null);
+  removeViewerImage(url);
+  showCurrent();
+}
+async function deletePreview() {
+  const url = $('#preview-actions').dataset.url, del = $('#preview-trash'), ok = $('#preview-confirm');
+  if (!url || ok.hidden || ok.disabled) return;
+  const params = new URL(url, location.href).searchParams;
+  del.disabled = ok.disabled = true;
+  hideDeleteConfirm(ok);
+  try {
+    await deleteOutputImage({filename: params.get('filename'), subfolder: params.get('subfolder')});
+    removeGalleryImage(url);
+  } catch (e) { showMsg('Could not delete image: ' + (e.data?.error || e.message)); }
+  finally { del.disabled = ok.disabled = false; }
+}
+function hideDeleteConfirm(button) {
+  clearTimeout(deleteConfirmTimers.get(button));
+  deleteConfirmTimers.delete(button);
+  button.hidden = true;
+}
+function toggleDeleteConfirm(button) {
+  if (!button.hidden) { hideDeleteConfirm(button); return; }
+  button.hidden = false;
+  deleteConfirmTimers.set(button, setTimeout(() => hideDeleteConfirm(button), 3000));
+}
+function cropPreview(bitmap, bounds) {
+  const [left, top, right, bottom] = bounds;
+  const x = Math.floor(left * bitmap.width), y = Math.floor(top * bitmap.height);
+  const width = Math.ceil(right * bitmap.width) - x, height = Math.ceil(bottom * bitmap.height) - y;
+  const canvas = el('canvas', {width, height});
+  canvas.getContext('2d').drawImage(bitmap, x, y, width, height, 0, 0, width, height);
+  return canvas;
+}
+async function onPreview(buf) {
+  const j = job;
+  if (!j) return;
+  let blob = parsePreview(buf);
   if (!blob) return;
+  const frame = j.previewFrame = {};
+  if (j.previewCrop || !j.previewSize) {
+    let bitmap;
+    try {
+      bitmap = await createImageBitmap(blob);
+      const source = [bitmap.width, bitmap.height];
+      const crop = j.previewCrop && cropPreview(bitmap, j.previewCrop);
+      const displayed = crop ? [crop.width, crop.height] : source;
+      if (crop) blob = await encodeExportCanvas(crop);
+      if (job !== j || j.previewFrame !== frame) return;
+      j.previewSize = source;
+      const longEdge = Math.max(...source);
+      const capped = j.previewMethod === 'taesd' && longEdge <= 512 && longEdge < j.previewTarget;
+      const small = longEdge < 384 || Math.max(...displayed) < 384 || capped;
+      j.previewReport = {small, capped, text: `Live preview ${displayed.join('×')} px${crop ? ` from ${source.join('×')} px` : ''}. `};
+      renderPreviewHint();
+    } catch (e) { return; }
+    finally { bitmap?.close(); }
+  }
+  if (!blob || job !== j || j.previewFrame !== frame) return;
   const old = previewUrl;
   previewUrl = URL.createObjectURL(blob);
   setLive(previewUrl);
@@ -1343,43 +1649,69 @@ function perfHint() {
 // ---------- rendering: Styles ----------
 const sampleFile = name => name.toLowerCase().replace(/ /g, '_') + '.jpg';
 const samplePath = name => (serverStyles ? base() + '/fooocus/samples/' : FOOOCUS_RAW + 'samples/') + sampleFile(name);
+let stylePreviewTimer;
+function hideStylePreview(name) {
+  const p = $('#style-preview');
+  if (name && p.dataset.name !== name) return;
+  clearTimeout(stylePreviewTimer);
+  p.dataset.name = ''; p.hidden = true;
+}
 function movePreview(e, touch) {
   const p = $('#style-preview');
-  const x = touch ? e.clientX - 100 : e.clientX + 18, y = touch ? (e.clientY > 250 ? e.clientY - 230 : e.clientY + 40) : e.clientY + 18;
-  p.style.left = Math.max(8, Math.min(x, innerWidth - 216)) + 'px';
-  p.style.top = Math.max(8, Math.min(y, innerHeight - 216)) + 'px';
+  const size = Math.min(200, innerWidth - 16, innerHeight - 16);
+  const x = touch ? e.clientX - size / 2 : e.clientX + 18;
+  const y = touch && e.clientY >= size + 24 ? e.clientY - size - 16 : e.clientY + 18;
+  p.style.left = Math.max(8, Math.min(x, innerWidth - size - 8)) + 'px';
+  p.style.top = Math.max(8, Math.min(y, innerHeight - size - 8)) + 'px';
 }
 function renderStyleTab() {
   const st = wfState(), q = $('#style-search').value.trim().toLowerCase(), box = $('#style-list');
+  hideStylePreview();
   box.innerHTML = '';
+  box.onscroll = () => hideStylePreview();
   const list = allStyles().filter(s => !q || s.name.toLowerCase().includes(q));
   list.sort((a, b) => st.styles.includes(b.name) - st.styles.includes(a.name));
   for (const s of list) {
     const c = el('input', {type: 'checkbox', checked: st.styles.includes(s.name)});
     c.onchange = () => { st.styles = c.checked ? [...st.styles, s.name] : st.styles.filter(n => n !== s.name); save(); };
-    const l = el('label', null, c, s.name);
+    const l = el('label', null, c, el('span', {textContent: s.name}));
+    let touchStart = 0, released = false, held = false;
+    const dismiss = () => {
+      clearTimeout(stylePreviewTimer);
+      stylePreviewTimer = setTimeout(() => hideStylePreview(s.name), 1800);
+    };
     const showPreview = (e, touch) => {
       const p = $('#style-preview');
+      clearTimeout(stylePreviewTimer);
       p.onerror = () => {                             // no local preview: try the Fooocus repository once
+        if (p.dataset.name !== s.name) return;
         if (serverStyles && !p.dataset.fb) { p.dataset.fb = '1'; p.src = FOOOCUS_RAW + 'samples/' + sampleFile(s.name); }
-        else p.hidden = true;
+        else hideStylePreview(s.name);
       };
       p.dataset.fb = '';
-      p.onload = () => { if (p.dataset.name === s.name) p.hidden = false; };
+      p.onload = () => {
+        if (p.dataset.name !== s.name) return;
+        p.hidden = false;
+        if (touch && released) dismiss();
+      };
       p.dataset.name = s.name; p.hidden = true; p.src = samplePath(s.name);
       movePreview(e, touch);
     };
-    const hidePreview = () => { const p = $('#style-preview'); p.dataset.name = ''; p.hidden = true; };
-    let hold = 0, held = false;
     l.onpointerenter = e => { if (e.pointerType === 'mouse') showPreview(e); };
     l.onpointermove = e => { if (e.pointerType === 'mouse') movePreview(e); };
-    l.onpointerleave = hidePreview;
-    l.onpointerdown = e => {                          // touch: the preview appears after a short hold and does not toggle the style
+    l.onpointerleave = e => { if (e.pointerType === 'mouse') hideStylePreview(s.name); };
+    l.onpointerdown = e => {
       if (e.pointerType === 'mouse') return;
-      held = false; clearTimeout(hold);
-      hold = setTimeout(() => { held = true; showPreview(e, true); }, 350);
+      touchStart = performance.now(); held = released = false;
+      showPreview(e, true);
     };
-    l.onpointerup = l.onpointercancel = e => { clearTimeout(hold); if (e.pointerType !== 'mouse') hidePreview(); };
+    l.onpointerup = e => {
+      if (e.pointerType === 'mouse') return;
+      held = performance.now() - touchStart >= 350;
+      released = true;
+      if (!$('#style-preview').hidden) dismiss();
+    };
+    l.onpointercancel = () => hideStylePreview(s.name);
     l.onclick = e => { if (held) { e.preventDefault(); held = false; } };
     l.oncontextmenu = e => e.preventDefault();
     box.append(l);
@@ -1404,6 +1736,13 @@ function renderStyleNote() {
 
 // ---------- rendering: Models ----------
 const FIELD_LABELS = {ckpt_name: 'Checkpoint', unet_name: 'Diffusion Model', clip_name: 'Text Encoder', clip_name1: 'Text Encoder 1', clip_name2: 'Text Encoder 2', vae_name: 'VAE', lora_name: 'LoRA (from workflow)'};
+const ANIMA_FILES_URL = 'https://huggingface.co/circlestone-labs/Anima/blob/main/split_files/';
+const MODEL_FILES = {
+  'sd_xl_base_1.0.safetensors': 'https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/blob/main/sd_xl_base_1.0.safetensors',
+  'anima-base-v1.0.safetensors': ANIMA_FILES_URL + 'diffusion_models/anima-base-v1.0.safetensors',
+  'qwen_3_06b_base.safetensors': ANIMA_FILES_URL + 'text_encoders/qwen_3_06b_base.safetensors',
+  'qwen_image_vae.safetensors': ANIMA_FILES_URL + 'vae/qwen_image_vae.safetensors'
+};
 function bindFileSelect(sel, f, wf, st) {
   const key = f.id + '.' + f.field, orig = wf[f.id].inputs[f.field];
   const opts = info ? comboOptions(info, f.cls, f.field) : null;
@@ -1412,9 +1751,15 @@ function bindFileSelect(sel, f, wf, st) {
   st.files[key] = val;
   fillSelect(sel, opts && opts.length ? opts : [val], val);
   sel.onchange = () => { st.files[key] = sel.value; sel.title = sel.value; save(); };
-  if (info && !opts) return `Node "${f.cls}" is not available on this ComfyUI server.`;
-  if (info && !opts.length) return 'No files found for this loader on the server.';
-  return '';
+  if (info && !opts) return [`Node "${f.cls}" is not available on this ComfyUI server. `,
+    externalLink('Custom node installation guide', 'https://docs.comfy.org/installation/install_custom_node'), '.'];
+  if (info && !opts.length) {
+    const file = String(val).split(/[\\/]/).pop();
+    const link = Object.hasOwn(MODEL_FILES, file) ? externalLink(`Download ${file}`, MODEL_FILES[file])
+      : externalLink('ComfyUI model installation guide', 'https://docs.comfy.org/basic-concepts/models');
+    return ['No files found for this loader on the server. ', link, '.'];
+  }
+  return [];
 }
 // LoRAs for the current workflow: the subfolder of models/loras named after it ("anima", "lora_sdxl", ...) plus the files in the root.
 const loraParts = n => n.split(/[\\/]/);
@@ -1499,7 +1844,7 @@ function renderModelTab() {
   const st = wfState();
   const main = a.fileFields.find(f => f.main);
   bm.disabled = !main;
-  if (main) { const w = bindFileSelect(bm, main, wf, st); bw.hidden = !w; bw.textContent = w; }
+  if (main) { const w = bindFileSelect(bm, main, wf, st); bw.hidden = !w.length; bw.replaceChildren(...w); }
   else fillSelect(bm, ['—'], '—');
 
   const lb = $('#loras'); lb.innerHTML = '';
@@ -1523,7 +1868,7 @@ function renderModelTab() {
   for (const f of a.fileFields.filter(f => !f.main)) {
     const s = el('select'), w = bindFileSelect(s, f, wf, st);
     const fld = el('div', {className: 'field'}, el('span', {className: 'lbl', textContent: FIELD_LABELS[f.field] || `${f.cls} · ${f.field}`}), s);
-    if (w) fld.append(el('div', {className: 'warn', textContent: w}));
+    if (w.length) fld.append(el('div', {className: 'warn'}, ...w));
     box.append(fld);
   }
   const imp = el('button', {className: 'small', textContent: 'Import workflow (API JSON)…'});
@@ -1533,7 +1878,7 @@ function renderModelTab() {
     const del = el('button', {className: 'small', textContent: `Remove "${state.workflow}"`});
     del.onclick = () => {
       delete state.customWfs[state.workflow]; delete state.perWf[state.workflow]; state.workflow = 'SDXL';
-      save(); renderStyleTab(); renderModelTab(); renderAdvTab();
+      save(); renderStyleTab(); renderModelTab(); renderAdvTab(); renderInputPanel();
     };
     row.append(del);
   }
@@ -1556,7 +1901,7 @@ function renderModelTab() {
 // ---------- rendering: Advanced ----------
 function renderAdvTab() {
   const st = wfState();
-  sliderField($('#cfg'), 'Guidance Scale', 1, 30, 0.1, st.cfg, v => { wfState().cfg = v; save(); }, 'Higher value means style is cleaner, vivider, and more artistic.');
+  sliderField($('#cfg'), 'Guidance Scale', 1, 30, 0.1, st.cfg, v => { wfState().cfg = v; save(); }, 'Inpaint with a negative prompt uses CFG 1.5 when the selected CFG is 1.');
   fillSelect($('#sampler'), (info && comboOptions(info, 'KSampler', 'sampler_name')) || [st.sampler], st.sampler);
   fillSelect($('#scheduler'), (info && comboOptions(info, 'KSampler', 'scheduler')) || [st.scheduler], st.scheduler);
   sliderField($('#clip-skip'), 'CLIP Skip', 0, 12, 1, st.clipSkip || 0, v => { wfState().clipSkip = v; save(); }, '0 keeps the model default. Other values add a "CLIP Set Last Layer" node (-N) before the prompt is encoded.');
@@ -1565,6 +1910,7 @@ function renderAdvTab() {
 function renderAll() { renderSettingTab(); renderStyleTab(); renderModelTab(); renderAdvTab(); renderInputPanel(); renderTagBox(); }
 function showTab(t) {
   state.tab = t;
+  if (t !== 'style') hideStylePreview();
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   document.querySelectorAll('#right .panel').forEach(p => p.hidden = p.dataset.panel !== t);
   save();
@@ -1572,21 +1918,31 @@ function showTab(t) {
 
 // ---------- Input Image: slots, drop zones, mask painting ----------
 const drops = {};
-const slots = {uov: null, inp: null, mask: null, meta: null};   // {file, img, url, w, h, ...}
+const slots = {uov: null, inp: null, mask: null, merge: null, meta: null};   // {file, img, url, w, h, ...}
+const INPUT_SLOTS = {uov: 'uov', inpaint: 'inp', meta: 'meta'};
 const mkCanvas = (w, h) => { const c = el('canvas', {width: w, height: h}); return [c, c.getContext('2d', {willReadFrequently: true})]; };
 function loadImageFile(file) {
   return new Promise((res, rej) => {
     const url = URL.createObjectURL(file), img = new Image();
     img.onload = () => res({file, img, url, w: img.naturalWidth, h: img.naturalHeight});
-    img.onerror = () => rej(new Error('Not an image'));
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('Not an image')); };
     img.src = url;
   });
 }
 function makeDrop(box, key, onChange) {
   const input = el('input', {type: 'file', accept: 'image/*', hidden: true});
   const take = async file => {
-    try { slots[key] = await loadImageFile(file); } catch (e) { showMsg('Could not read this file as an image.'); return; }
-    draw(); if (onChange) onChange(slots[key]);
+    let s;
+    try { s = await loadImageFile(file); } catch (e) { showMsg('Could not read this file as an image.'); return; }
+    if (slots[key]) URL.revokeObjectURL(slots[key].url);
+    slots[key] = s;
+    draw(); if (onChange) onChange(s);
+    if (key === 'inp' || key === 'uov') {
+      const meta = await readImageMetadata(file);
+      if (slots[key] !== s) return;
+      importSeed(meta?.Seed);
+    }
+    return s;
   };
   const draw = () => {
     box.innerHTML = ''; box.append(input);
@@ -1607,38 +1963,518 @@ function makeDrop(box, key, onChange) {
     let f = e.dataTransfer.files[0];
     if (!f) {                                         // an image dragged from the gallery arrives as a URL
       const url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
-      try { const b = await (await fetch(url)).blob(); f = new File([b], 'image.png', {type: b.type}); } catch (err) {}
+      if (url) try { f = await fileFromImage(url); } catch (err) {}
     }
     if (f) take(f);
   };
   draw();
   return {draw, take};
 }
-function drawStrokes(ctx, strokes, k, ox, oy, eraseColor) {
+function brushPath(ctx, st, k, ox, oy) {
+  const p = st.pts, x = ox + p[0][0] * k, y = oy + p[0][1] * k;
   ctx.lineCap = ctx.lineJoin = 'round';
-  for (const st of strokes) {
-    const p = st.pts;
-    // eraser strokes cut the overlay; in the final mask they are painted black
-    if (st.erase && !eraseColor) ctx.globalCompositeOperation = 'destination-out';
-    ctx.strokeStyle = ctx.fillStyle = st.erase && eraseColor ? eraseColor : '#fff';
-    ctx.lineWidth = st.size * k;
-    ctx.beginPath(); ctx.moveTo(ox + p[0][0] * k, oy + p[0][1] * k);
-    for (const q of p) ctx.lineTo(ox + q[0] * k, oy + q[1] * k);
+  ctx.lineWidth = st.size * k;
+  ctx.beginPath();
+  if (p.length === 1) {
+    ctx.arc(x, y, st.size * k / 2, 0, 2 * Math.PI);
+    ctx.fill();
+  } else {
+    ctx.moveTo(x, y);
+    for (let i = 1; i < p.length; i++) ctx.lineTo(ox + p[i][0] * k, oy + p[i][1] * k);
     ctx.stroke();
-    if (p.length === 1) { ctx.beginPath(); ctx.arc(ox + p[0][0] * k, oy + p[0][1] * k, st.size * k / 2, 0, 7); ctx.fill(); }
-    ctx.globalCompositeOperation = 'source-over';
   }
 }
+function strokeSegments(st, start, draw) {
+  for (let end = start + 1; end <= st.pts.length; end++) {
+    draw({size: st.size, pts: st.pts.slice(Math.max(0, end - 2), end)});
+  }
+}
+function drawMaskEraser(ctx, st, k, ox, oy, eraseColor, start = 0) {
+  // Erase the preview alpha, or paint black into the mask sent for inpainting.
+  if (!eraseColor) ctx.globalCompositeOperation = 'destination-out';
+  ctx.strokeStyle = ctx.fillStyle = eraseColor || '#fff';
+  strokeSegments(st, start, segment => brushPath(ctx, segment, k, ox, oy));
+  ctx.globalCompositeOperation = 'source-over';
+}
+function drawStrokes(ctx, strokes, k, ox, oy, eraseColor, tint = '#fff') {
+  for (const st of strokes) {
+    if (st.color || st.colorOnly) continue;
+    if (st.erase) drawMaskEraser(ctx, st, k, ox, oy, eraseColor);
+    else {
+      ctx.strokeStyle = ctx.fillStyle = tint;
+      brushPath(ctx, st, k, ox, oy);
+    }
+  }
+}
+const luminance = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b;
+function recolorFamily(r, g, b, light) {
+  const max = Math.max(r, g, b), chroma = max - Math.min(r, g, b);
+  if (chroma < Math.max(6, max * 0.06)) return light < 56 ? 6 : light < 196 ? 7 : 8;
+  const hue = max === r ? (g - b) / chroma : max === g ? 2 + (b - r) / chroma : 4 + (r - g) / chroma;
+  return (hue + 6) % 6;
+}
+function recolorReference(s) {
+  if (s.recolorReference) return s.recolorReference;
+  const scale = Math.min(1, 384 / Math.max(s.w, s.h));
+  const w = Math.max(1, Math.round(s.w * scale)), h = Math.max(1, Math.round(s.h * scale));
+  const [, ctx] = mkCanvas(w, h);
+  ctx.drawImage(s.img, 0, 0, w, h);
+  const pixels = ctx.getImageData(0, 0, w, h).data;
+  const weights = new Float64Array(9 * 256), tones = new Float64Array(weights.length);
+  // Sample the unpainted image once. The reference for a hue is independent of the brush path.
+  for (let i = 0; i < pixels.length; i += 4) {
+    const a = pixels[i + 3];
+    if (!a) continue;
+    const r = pixels[i], g = pixels[i + 1], b = pixels[i + 2], light = luminance(r, g, b);
+    const hue = recolorFamily(r, g, b, light), family = Math.floor(hue), fraction = hue - family;
+    const level = Math.round(light), bin = family * 256 + level;
+    weights[bin] += a * (1 - fraction);
+    tones[bin] += light * a * (1 - fraction);
+    if (fraction) {
+      const next = ((family + 1) % 6) * 256 + level;
+      weights[next] += a * fraction;
+      tones[next] += light * a * fraction;
+    }
+  }
+  return s.recolorReference = Array.from({length: 9}, (_, family) => {
+    const start = family * 256;
+    let best = start;
+    for (let i = start + 1; i < start + 256; i++) if (weights[i] > weights[best]) best = i;
+    if (!weights[best]) return null;
+    const tone = tones[best] / weights[best];
+    return tone < 1 ? 0 : tone > 254 ? 255 : tone;
+  });
+}
+function createRecolorSource(ctx, left, top, w, h, reference) {
+  const pixels = ctx.getImageData(left, top, w, h).data;
+  return {pixels, left, top, w, h, reference, coverage: new Uint32Array(w * h), mask: mkCanvas(128, 128)[1]};
+}
+function recolorBounds(points, k, x, y, pad, canvas) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const [px, py] of points) {
+    minX = Math.min(minX, px); minY = Math.min(minY, py); maxX = Math.max(maxX, px); maxY = Math.max(maxY, py);
+  }
+  return [Math.max(0, Math.floor(x + minX * k - pad)), Math.max(0, Math.floor(y + minY * k - pad)),
+    Math.min(canvas.width, Math.ceil(x + maxX * k + pad)), Math.min(canvas.height, Math.ceil(y + maxY * k + pad))];
+}
+const recolorFeather = (st, k) => Math.min(8, st.size * k * 0.12);
+const recolorPad = (st, k) => Math.ceil(recolorFeather(st, k) * 3) + 2;
+const lightPixel = (pixels, i, threshold) => pixels[i + 3] && Math.max(pixels[i], pixels[i + 1], pixels[i + 2]) >= threshold;
+function recolorMatte(mask, st, k, left, top, w, h, blur = 0, pad = 0) {
+  if (mask.canvas.width < w + 2 * pad) mask.canvas.width = w + 2 * pad;
+  if (mask.canvas.height < h + 2 * pad) mask.canvas.height = h + 2 * pad;
+  mask.clearRect(0, 0, w + 2 * pad, h + 2 * pad);
+  if (blur) mask.filter = `blur(${blur}px)`;
+  brushPath(mask, st, k, pad - left, pad - top);
+  if (blur) mask.filter = 'none';
+  return mask.getImageData(pad, pad, w, h).data;
+}
+function drawRecolorSegment(ctx, st, k, source, points) {
+  const {pixels, reference, coverage, mask} = source;
+  const pad = recolorPad(st, k);
+  const [l, t, r, b] = recolorBounds(points, k, source.left, source.top, st.size * k / 2 + pad, ctx.canvas);
+  const left = Math.max(l, source.left), top = Math.max(t, source.top);
+  const w = Math.min(r, source.left + source.w) - left, h = Math.min(b, source.top + source.h) - top;
+  if (w <= 0 || h <= 0) return;
+  const matte = recolorMatte(mask, {size: st.size, pts: points}, k, left - source.left, top - source.top, w, h, recolorFeather(st, k), pad);
+  let image, target;
+  const color = parseInt(st.color.slice(1), 16), cr = color >> 16, cg = (color >> 8) & 255, cb = color & 255;
+  const inkRadii = [5, 12, 24, 40, 60].map(radius => Math.max(1, Math.round(radius * k)));
+  for (let row = 0, j = 0; row < h; row++) {
+    const y = top - source.top + row;
+    for (let col = 0; col < w; col++, j += 4) {
+      const x = left - source.left + col, index = y * source.w + x, i = 4 * index;
+      const amount = matte[j + 3], previous = coverage[index];
+      const covered = previous >>> 8 === color ? previous & 255 : 0;
+      if (amount <= covered || !pixels[i + 3]) continue;
+      coverage[index] = color << 8 | amount;
+      const red = pixels[i], green = pixels[i + 1], blue = pixels[i + 2], light = luminance(red, green, blue);
+      const high = Math.max(red, green, blue);
+      if (high < 35) {
+        const threshold = high + 14;
+        let ink = false;
+        for (const radius of inkRadii) {
+          const dx = 4 * radius, dy = dx * source.w;
+          const horizontal = x >= radius && x + radius < source.w, vertical = y >= radius && y + radius < source.h;
+          if ((horizontal && lightPixel(pixels, i - dx, threshold) && lightPixel(pixels, i + dx, threshold)) ||
+              (vertical && lightPixel(pixels, i - dy, threshold) && lightPixel(pixels, i + dy, threshold)) ||
+              (horizontal && vertical && ((lightPixel(pixels, i - dy - dx, threshold) && lightPixel(pixels, i + dy + dx, threshold)) ||
+                (lightPixel(pixels, i - dy + dx, threshold) && lightPixel(pixels, i + dy - dx, threshold))))) { ink = true; break; }
+        }
+        if (ink) continue;
+      }
+      const hue = recolorFamily(red, green, blue, light), family = Math.floor(hue), fraction = hue - family;
+      const next = fraction ? reference[(family + 1) % 6] : null;
+      const base = reference[family] ?? next ?? light, baseline = base + fraction * ((next ?? base) - base);
+      const scale = light < baseline ? light / baseline : 1 - (light - baseline) / (255 - baseline || 1);
+      const lift = light > baseline ? 255 * (1 - scale) : 0, alpha = (amount - covered) / (255 - covered);
+      // Extend coverage for the same color, or feather a new color into the current paint.
+      if (!image) { image = ctx.getImageData(left, top, w, h); target = image.data; }
+      target[j] += alpha * (cr * scale + lift - target[j]);
+      target[j + 1] += alpha * (cg * scale + lift - target[j + 1]);
+      target[j + 2] += alpha * (cb * scale + lift - target[j + 2]);
+    }
+  }
+  if (image) ctx.putImageData(image, left, top);
+}
+function drawSprayStroke(ctx, st, k, start = 0) {
+  const r = st.size * k / 2, points = st.pts;
+  const dab = (x, y) => {
+    x *= k; y *= k;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, st.color + '40');
+    g.addColorStop(1, st.color + '00');
+    ctx.fillStyle = g; ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+  };
+  if (!start) dab(...points[0]);
+  for (let i = Math.max(1, start); i < points.length; i++) {
+    const [x, y] = points[i - 1], dx = points[i][0] - x, dy = points[i][1] - y;
+    const steps = Math.max(1, Math.ceil(Math.hypot(dx, dy) / (st.size * 0.2)));
+    for (let j = 1; j <= steps; j++) dab(x + dx * j / steps, y + dy * j / steps);
+  }
+}
+function originalPaintPattern(ctx, image, k) {
+  const pattern = ctx.createPattern(image, 'no-repeat');
+  if (k !== 1) pattern.setTransform(new DOMMatrix().scale(k));
+  return pattern;
+}
+function erasePaintStroke(ctx, st, k, original, spray) {
+  // Put back the original pixels using the same coverage the eraser removed.
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.strokeStyle = ctx.fillStyle = '#fff';
+  brushPath(ctx, st, k, 0, 0);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = ctx.fillStyle = original;
+  brushPath(ctx, st, k, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+  if (spray) {
+    spray.globalCompositeOperation = 'destination-out';
+    spray.strokeStyle = spray.fillStyle = '#fff';
+    brushPath(spray, st, k, 0, 0);
+    spray.globalCompositeOperation = 'source-over';
+  }
+}
+function clearErasedCoverage(recolor, st, k) {
+  if (!recolor) return;
+  const {w: width, h: height, mask, coverage} = recolor;
+  const [left, top, right, bottom] = recolorBounds(st.pts, k, 0, 0, st.size * k / 2 + 2, {width, height});
+  const w = right - left, h = bottom - top;
+  if (w <= 0 || h <= 0) return;
+  const matte = recolorMatte(mask, st, k, left, top, w, h);
+  for (let y = top, j = 3; y < bottom; y++) {
+    for (let i = y * width + left, end = i + w; i < end; i++, j += 4) if (matte[j]) coverage[i] = 0;
+  }
+}
+function compositeSpray(ctx, spray, x, y, w, h, dx = x, dy = y) {
+  if (!spray) return;
+  ctx.globalCompositeOperation = 'source-atop';
+  ctx.drawImage(spray.canvas, x, y, w, h, dx, dy, w, h);
+  ctx.globalCompositeOperation = 'source-over';
+}
+function* paintImageSteps(ctx, s, strokes, k, x, y, editor) {
+  const w = s.w * k, h = s.h * k;
+  ctx.drawImage(s.img, x, y, w, h);
+  const recolor = strokes.some(st => st.tool === 'recolor') ? createRecolorSource(ctx, x, y, Math.round(w), Math.round(h), recolorReference(s)) : null;
+  const spray = strokes.some(st => st.tool === 'spray') ? mkCanvas(Math.round(w), Math.round(h))[1] : null;
+  if (!recolor && !spray) return;
+  ctx.save(); ctx.translate(x, y);
+  ctx.beginPath(); ctx.rect(0, 0, w, h); ctx.clip();
+  let original;
+  for (const st of strokes) {
+    if (st.tool === 'recolor') {
+      for (let end = 1; end <= st.pts.length; end++) {
+        drawRecolorSegment(ctx, st, k, recolor, st.pts.slice(Math.max(0, end - 2), end));
+        yield;
+      }
+      continue;
+    }
+    if (!st.color && !st.erase) continue;
+    if (st.tool === 'spray') drawSprayStroke(spray, st, k);
+    else strokeSegments(st, 0, segment => {
+      erasePaintStroke(ctx, segment, k, original ||= originalPaintPattern(ctx, s.img, k), spray);
+      clearErasedCoverage(recolor, segment, k);
+    });
+    yield;
+  }
+  ctx.restore();
+  if (editor) return {recolor, spray};
+  compositeSpray(ctx, spray, 0, 0, Math.round(w), Math.round(h), x, y);
+  if (spray) spray.canvas.width = 0;
+  if (recolor) recolor.mask.canvas.width = 0;
+}
+function drawPaintedImage(ctx, s, strokes, k, x = 0, y = 0, editor = false) {
+  const steps = paintImageSteps(ctx, s, strokes, k, x, y, editor);
+  let step = steps.next();
+  while (!step.done) step = steps.next();
+  return step.value;
+}
+async function drawExportPaint(ctx, s, strokes, x = 0, y = 0, signal) {
+  signal?.throwIfAborted();
+  const canvas = s.paintCanvas?.();
+  if (canvas) { ctx.drawImage(canvas, x, y); return; }
+  ctx.drawImage(s.img, x, y);
+  if (!strokes.some(st => st.color)) return;
+
+  const size = 512, halo = 64; // Original pixels around the tile are needed for ink detection and feathering.
+  const dims = {width: s.w, height: s.h};
+  const history = strokes.filter(st => st.color || st.erase).map(st => ({
+    stroke: st, bounds: recolorBounds(st.pts, 1, 0, 0, st.size / 2 + (st.tool === 'recolor' ? recolorPad(st, 1) : 2), dims)
+  }));
+  const [region, rx] = mkCanvas(1, 1), [tile, tx] = mkCanvas(1, 1);
+  const profile = history.some(({stroke}) => stroke.tool === 'recolor') ? recolorReference(s) : null;
+  let deadline = performance.now() + 12;
+  try {
+    for (let top = 0; top < s.h; top += size) for (let left = 0; left < s.w; left += size) {
+      const right = Math.min(s.w, left + size), bottom = Math.min(s.h, top + size);
+      const l = Math.max(0, left - halo), t = Math.max(0, top - halo);
+      const w = Math.min(s.w, right + halo) - l, h = Math.min(s.h, bottom + halo) - t;
+      const relevant = history.filter(({bounds: [a, b, c, d]}) => a < l + w && c > l && b < t + h && d > t);
+      if (!relevant.some(({stroke}) => stroke.color)) continue;
+      if (region.width !== w || region.height !== h) {
+        region.width = tile.width = w; region.height = tile.height = h;
+      } else {
+        rx.clearRect(0, 0, w, h); tx.clearRect(0, 0, w, h);
+      }
+      rx.drawImage(s.img, l, t, w, h, 0, 0, w, h);
+      const local = relevant.map(({stroke}) => ({...stroke, pts: stroke.pts.map(([a, b]) => [a - l, b - t])}));
+      const steps = paintImageSteps(tx, {img: region, w, h, recolorReference: profile}, local, 1, 0, 0, false);
+      while (!steps.next().done) {
+        if (performance.now() < deadline) continue;
+        await new Promise(resolve => setTimeout(resolve, 0));
+        signal?.throwIfAborted();
+        deadline = performance.now() + 12;
+      }
+      // Replace the tile, including transparent pixels in the original artwork.
+      ctx.clearRect(x + left, y + top, right - left, bottom - top);
+      ctx.drawImage(tile, left - l, top - t, right - left, bottom - top, x + left, y + top, right - left, bottom - top);
+    }
+  } finally { region.width = tile.width = 0; }
+}
+const PAINT_TOOLS = ['brush', 'eraser', 'recolor', 'spray'];
+function isMergeMode() { return state.inpaint.method === 'merge'; }
 let tool = 'brush', spaceHeld = false, inpHover = false, inpFocus = false;
+let colorSampler = null;
 function setTool(t) {
   tool = t;
-  for (const k of ['brush', 'eraser']) $('#tool-' + k).classList.toggle('on', k === t);
+  for (const k of PAINT_TOOLS) {
+    const button = $('#tool-' + k);
+    button.classList.toggle('on', k === t);
+    button.setAttribute('aria-pressed', k === t);
+  }
   if (slots.inp && slots.inp.ringRefresh) slots.inp.ringRefresh();
 }
 function setBrush(v) {
   const b = $('#brush');
   b.value = Math.min(Number(b.max), Math.max(Number(b.min), Math.round(v)));
   if (slots.inp && slots.inp.ringRefresh) slots.inp.ringRefresh();
+}
+const rgbHex = rgb => '#' + rgb.map(n => n.toString(16).padStart(2, '0')).join('');
+function hexRgb(text) {
+  let value = text.trim().replace(/^#/, '');
+  if (/^[a-f\d]{3}$/i.test(value)) value = value.replace(/./g, c => c + c);
+  if (!/^[a-f\d]{6}$/i.test(value)) return null;
+  return [0, 2, 4].map(i => parseInt(value.slice(i, i + 2), 16));
+}
+function setupPaintPalette() {
+  const color = $('#inp-color'), button = $('.paint-palette'), picker = $('#color-picker');
+  const hue = $('#color-hue'), saturation = $('#color-saturation'), lightness = $('#color-lightness');
+  const hex = $('#color-hex'), rgb = $('#color-rgb');
+  const swatch = $('#color-swatch').getContext('2d');
+  const saturationTrack = $('#saturation-track'), lightnessTrack = $('#lightness-track');
+  const eyedropper = $('#color-eyedropper'), status = $('#color-status');
+  const loupe = $('#color-loupe'), zoomed = loupe.getContext('2d');
+  const bottomSheet = matchMedia('(pointer:coarse),(max-width:700px)');
+  let h = 0, s = 0, l = 0, draft;
+  // Draw color previews in canvas so Chromium's auto-dark mode preserves their colors.
+  const paintTrack = (canvas, stops) => {
+    const ctx = canvas.getContext('2d'), gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+    stops.forEach((stop, i) => gradient.addColorStop(i / (stops.length - 1), stop));
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  };
+  paintTrack($('#hue-track'), ['#f00', '#ff0', '#0f0', '#0ff', '#00f', '#f0f', '#f00']);
+  const showColor = () => {
+    button.style.setProperty('--paint-color', color.value);
+    slots.inp?.ringRefresh();
+  };
+  const saved = hexRgb(state.inpaint.color || '');
+  if (saved) color.value = rgbHex(saved);
+  color.oninput = () => { state.inpaint.color = color.value; showColor(); save(); };
+  showColor();
+
+  const update = (channels, source) => {
+    draft = rgbHex(channels);
+    paintTrack(saturationTrack, [`hsl(${h} 0% ${l * 100}%)`, `hsl(${h} 100% ${l * 100}%)`]);
+    paintTrack(lightnessTrack, ['#000', `hsl(${h} ${s * 100}% 50%)`, '#fff']);
+    swatch.fillStyle = draft;
+    swatch.fillRect(0, 0, swatch.canvas.width, swatch.canvas.height);
+    hue.value = h;
+    saturation.value = s * 100;
+    lightness.value = l * 100;
+    if (source !== hex) { hex.value = draft; hex.setCustomValidity(''); }
+    if (source !== rgb) { rgb.value = channels.join(', '); rgb.setCustomValidity(''); }
+  };
+  const fromRgb = (channels, source) => {
+    const [r, g, b] = channels.map(n => n / 255);
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), chroma = max - min;
+    l = (max + min) / 2;
+    s = chroma ? chroma / (1 - Math.abs(2 * l - 1)) : 0;
+    if (chroma) h = ((max === r ? (g - b) / chroma : max === g ? 2 + (b - r) / chroma : 4 + (r - g) / chroma) * 60 + 360) % 360;
+    update(channels, source);
+  };
+  const fromPicker = () => {
+    const a = s * Math.min(l, 1 - l);
+    update([0, 8, 4].map(offset => {
+      const k = (offset + h / 30) % 12;
+      return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
+    }));
+  };
+  const textColor = (field, channels, message) => {
+    field.setCustomValidity(channels ? '' : message);
+    if (channels) fromRgb(channels, field);
+  };
+  hex.oninput = () => textColor(hex, hexRgb(hex.value), 'Enter a hex color, for example #e8577b.');
+  rgb.oninput = () => {
+    const match = rgb.value.trim().replace(/^rgb\((.*)\)$/i, '$1').trim().match(/^(\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})(?:\s*,\s*|\s+)(\d{1,3})$/);
+    const channels = match?.slice(1).map(Number);
+    textColor(rgb, channels?.every(n => n <= 255) ? channels : null, 'Enter three RGB values from 0 to 255.');
+  };
+  hue.oninput = () => { h = Number(hue.value); fromPicker(); };
+  saturation.oninput = () => { s = Number(saturation.value) / 100; fromPicker(); };
+  lightness.oninput = () => { l = Number(lightness.value) / 100; fromPicker(); };
+
+  const place = () => {
+    if (picker.hidden) return;
+    if (bottomSheet.matches) {
+      const viewport = window.visualViewport;
+      if (viewport) {
+        picker.style.setProperty('--keyboard-offset', `${Math.max(0, document.documentElement.clientHeight - viewport.height - viewport.offsetTop)}px`);
+        picker.style.setProperty('--visible-height', `${viewport.height}px`);
+      }
+      return;
+    }
+    const r = button.getBoundingClientRect();
+    const top = r.bottom + picker.offsetHeight + 12 <= innerHeight ? r.bottom + 4 : r.top - picker.offsetHeight - 4;
+    picker.style.setProperty('--picker-top', `${Math.max(8, Math.min(top, innerHeight - picker.offsetHeight - 8))}px`);
+    picker.style.setProperty('--picker-left', `${Math.max(8, Math.min(r.left, document.documentElement.clientWidth - picker.offsetWidth - 8))}px`);
+  };
+  const hideLoupe = () => { loupe.hidden = true; };
+  const setSampling = active => {
+    colorSampler = active ? {preview: previewPixel, pick: sample, hide: hideLoupe} : null;
+    if (!active) hideLoupe();
+    document.body.classList.toggle('picking-color', active);
+    eyedropper.setAttribute('aria-pressed', active);
+    status.textContent = active ? 'Pick a color from an image' : 'Brush color';
+  };
+  const close = () => {
+    setSampling(false);
+    picker.hidden = true;
+    document.body.classList.remove('color-picker-open');
+    button.setAttribute('aria-expanded', 'false');
+    if (picker.contains(document.activeElement) || document.activeElement === document.body) button.focus({preventScroll: true});
+  };
+  button.onclick = () => {
+    if (!picker.hidden) { close(); return; }
+    fromRgb(hexRgb(color.value));
+    picker.hidden = false;
+    document.body.classList.add('color-picker-open');
+    button.setAttribute('aria-expanded', 'true');
+    place();
+    if (!bottomSheet.matches) hue.focus({preventScroll: true});
+  };
+  $('#color-cancel').onclick = close;
+  $('#color-apply').onclick = () => {
+    if (!hex.reportValidity() || !rgb.reportValidity()) return;
+    color.value = draft;
+    color.oninput();
+    close();
+  };
+  picker.onkeydown = e => {
+    if (e.key === 'Enter' && (e.target === hex || e.target === rgb)) { e.preventDefault(); $('#color-apply').click(); }
+  };
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !picker.hidden) close(); });
+  window.addEventListener('resize', () => { place(); hideLoupe(); });
+  bottomSheet.addEventListener('change', place);
+  window.addEventListener('scroll', () => { place(); if (colorSampler) hideLoupe(); }, {passive: true});
+  window.visualViewport?.addEventListener('resize', place);
+  window.visualViewport?.addEventListener('scroll', place);
+  const sourcePixel = (e, source) => {
+    const width = source.naturalWidth ?? source.width, height = source.naturalHeight ?? source.height;
+    let {left, top, width: displayW, height: displayH} = source.getBoundingClientRect();
+    const style = getComputedStyle(source), fit = style.objectFit;
+    const borderLeft = parseFloat(style.borderLeftWidth), borderTop = parseFloat(style.borderTopWidth);
+    left += borderLeft; top += borderTop;
+    displayW -= borderLeft + parseFloat(style.borderRightWidth);
+    displayH -= borderTop + parseFloat(style.borderBottomWidth);
+    if (!width || !height || !displayW || !displayH || e.clientX < left || e.clientY < top ||
+        e.clientX >= left + displayW || e.clientY >= top + displayH) return;
+    if (fit === 'contain' || fit === 'cover') {
+      const scale = (fit === 'contain' ? Math.min : Math.max)(displayW / width, displayH / height);
+      left += (displayW - width * scale) / 2; top += (displayH - height * scale) / 2;
+      displayW = width * scale; displayH = height * scale;
+    }
+    const x = Math.floor((e.clientX - left) * width / displayW), y = Math.floor((e.clientY - top) * height / displayH);
+    if (x >= 0 && x < width && y >= 0 && y < height) return [x, y];
+  };
+  const previewPixel = (e, source) => {
+    const point = sourcePixel(e, source);
+    if (!point) { hideLoupe(); return; }
+    const [x, y] = point, cells = 9, cell = loupe.width / cells, center = Math.floor(cells / 2);
+    zoomed.imageSmoothingEnabled = false;
+    zoomed.clearRect(0, 0, loupe.width, loupe.height);
+    zoomed.drawImage(source, x - center, y - center, cells, cells, 0, 0, loupe.width, loupe.height);
+    zoomed.lineWidth = 1;
+    zoomed.strokeStyle = '#0004';
+    zoomed.beginPath();
+    for (let offset = cell; offset < loupe.width; offset += cell) {
+      zoomed.moveTo(offset + .5, 0); zoomed.lineTo(offset + .5, loupe.height);
+      zoomed.moveTo(0, offset + .5); zoomed.lineTo(loupe.width, offset + .5);
+    }
+    zoomed.stroke();
+    zoomed.strokeStyle = '#000'; zoomed.lineWidth = 3;
+    zoomed.strokeRect(center * cell + .5, center * cell + .5, cell, cell);
+    zoomed.strokeStyle = '#fff'; zoomed.lineWidth = 1;
+    zoomed.strokeRect(center * cell + .5, center * cell + .5, cell, cell);
+
+    loupe.hidden = false;
+    const viewport = window.visualViewport, vx = viewport?.offsetLeft ?? 0, vy = viewport?.offsetTop ?? 0;
+    const right = vx + (viewport?.width ?? innerWidth), bottom = vy + (viewport?.height ?? innerHeight);
+    const w = loupe.offsetWidth, h = loupe.offsetHeight, gap = 16;
+    const left = e.pointerType === 'touch' ? e.clientX - w / 2 : e.clientX + gap + w <= right ? e.clientX + gap : e.clientX - gap - w;
+    const top = e.clientY - gap - h >= vy ? e.clientY - gap - h : e.clientY + gap;
+    loupe.style.left = `${Math.max(vx, Math.min(left, right - w))}px`;
+    loupe.style.top = `${Math.max(vy, Math.min(top, bottom - h))}px`;
+  };
+  const sample = (e, source) => {
+    const point = sourcePixel(e, source);
+    if (!point) return;
+    const [x, y] = point;
+    const [, pixel] = mkCanvas(1, 1);
+    try {
+      pixel.drawImage(source, x, y, 1, 1, 0, 0, 1, 1);
+      const [r, g, b, a] = pixel.getImageData(0, 0, 1, 1).data;
+      if (a) { fromRgb([r, g, b]); setSampling(false); }
+    } catch (err) { status.textContent = 'This image could not be sampled.'; }
+  };
+  eyedropper.onclick = () => setSampling(!colorSampler);
+  const sampleImages = '#preview-image, #thumbs img, .drop>img';
+  const previewImage = e => {
+    if (!colorSampler) return;
+    const source = e.target.closest(sampleImages);
+    if (source) previewPixel(e, source);
+  };
+  document.addEventListener('pointermove', previewImage);
+  document.addEventListener('pointerdown', previewImage);
+  for (const event of ['pointerout', 'pointercancel']) document.addEventListener(event, e => {
+    if (colorSampler && e.target.closest(sampleImages)) hideLoupe();
+  });
+  document.addEventListener('click', e => {
+    if (!colorSampler) return;
+    const source = e.target.closest(sampleImages);
+    if (!source) return;
+    e.preventDefault(); e.stopPropagation();
+    sample(e, source);
+  }, true);
 }
 // Zoom of the inpaint picture; the point under the cursor (or the middle of the box) stays where it is.
 function inpZoom(z, e) {
@@ -1653,18 +2489,38 @@ function inpZoom(z, e) {
   box.scrollLeft += r1.left + fx * r1.width - ax;
   box.scrollTop += r1.top + fy * r1.height - ay;
   $('#zoom-val').textContent = '🔍 ' + Math.round(s.zoom * 100) + '%';
+  s.ringRefresh();
 }
 function inpLayout() {                                // size that fits the box at 100 %
   const s = slots.inp;
   $('#inp-drop').classList.toggle('has-img', !!s);
   if (!s || !s.imgEl || !s.box.clientWidth) return;
   const box = s.box;
-  s.fit = Math.max(64, Math.min(box.clientWidth - 2, innerHeight * 0.7 * s.w / s.h));
+  // Fit the art to 70% of the stable viewport; the scroll box is capped at 84%.
+  const fitHeight = parseFloat(getComputedStyle(box).maxHeight) * (5 / 6);
+  const fit = Math.max(64, Math.min(box.clientWidth - 2, fitHeight * s.w / s.h));
+  if (s.fit === fit) return;
+  s.fit = fit;
   inpZoom(s.zoom || 1);
 }
 const inpActive = () => state.inputImage && state.itab === 'inpaint' && slots.inp && (inpHover || inpFocus);
-const inpUndo = () => { const s = slots.inp; if (s && s.strokes.length) { s.strokes.pop(); s.redraw(); } };
-const inpClear = () => { const s = slots.inp; if (s) { s.strokes.length = 0; s.redraw(); } };
+const inpStrokes = s => isMergeMode() ? s.mergeStrokes : s.strokes;
+function inpUndo() {
+  const s = slots.inp, stroke = s && inpStrokes(s).pop();
+  if (!stroke) return;
+  if (isMergeMode()) { s.redrawMask(); return; }
+  if (stroke.color || stroke.erase) s.undoPaint(stroke);
+  if (!stroke.color) s.redrawMask();
+}
+function inpClear() {
+  const s = slots.inp;
+  if (!s) return;
+  if (isMergeMode()) { s.mergeStrokes = []; s.redrawMask(); return; }
+  const firstColor = s.strokes.findIndex(st => st.color);
+  s.strokes = firstColor < 0 ? [] : s.strokes.slice(firstColor).filter(st => st.color || st.erase);
+  for (const st of s.strokes) if (st.erase) st.colorOnly = true;
+  s.redrawMask();
+}
 function maskOverlay(m) {                             // uploaded / generated mask as white with brightness as opacity
   if (!m.overlay) {
     const [c, x] = mkCanvas(m.w, m.h);
@@ -1676,45 +2532,233 @@ function maskOverlay(m) {                             // uploaded / generated ma
   }
   return m.overlay;
 }
+function drawCutoutStroke(ctx, stroke, scale, start = 0) {
+  ctx.globalCompositeOperation = stroke.erase ? 'destination-out' : 'source-over';
+  ctx.strokeStyle = ctx.fillStyle = '#fff';
+  strokeSegments(stroke, start, segment => brushPath(ctx, segment, scale, 0, 0));
+  ctx.globalCompositeOperation = 'source-over';
+}
+function applyCutout(ctx, cutout, layer, x = 0, y = 0, w = ctx.canvas.width, h = ctx.canvas.height) {
+  if (cutout) {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.drawImage(cutout, x, y, w, h, x, y, w, h);
+  }
+  if (layer) {
+    const scale = Math.max(ctx.canvas.width / layer.w, ctx.canvas.height / layer.h);
+    const left = (layer.w - ctx.canvas.width / scale) / 2, top = (layer.h - ctx.canvas.height / scale) / 2;
+    ctx.globalCompositeOperation = 'destination-over';
+    ctx.drawImage(layer.img, left + x / scale, top + y / scale, w / scale, h / scale, x, y, w, h);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
 function paintView(s) {
   s.strokes = s.strokes || [];
+  s.mergeStrokes = s.mergeStrokes || [];
   const k = Math.min(1, 2048 / Math.max(s.w, s.h));
   const [cv, ctx] = mkCanvas(Math.round(s.w * k), Math.round(s.h * k));
-  const ring = el('div', {className: 'ring', hidden: true}), box = el('div', {className: 'scroll'});
-  // colour map for the mask: white, fading to grey where the picture itself is very light, so the mask stays visible there
-  const [tint, tx] = mkCanvas(cv.width, cv.height);
-  tx.drawImage(s.img, 0, 0, cv.width, cv.height);
-  try {
-    const d = tx.getImageData(0, 0, cv.width, cv.height), a = d.data;
-    for (let i = 0; i < a.length; i += 4) {
-      const lum = 0.299 * a[i] + 0.587 * a[i + 1] + 0.114 * a[i + 2];
-      a[i] = a[i + 1] = a[i + 2] = lum <= 165 ? 255 : 255 - (lum - 165) / 90 * 165;
-      a[i + 3] = 255;
-    }
-    tx.putImageData(d, 0, 0);
-  } catch (err) { tx.fillStyle = '#fff'; tx.fillRect(0, 0, cv.width, cv.height); }
-  s.redraw = () => {
-    ctx.clearRect(0, 0, cv.width, cv.height);
-    if (state.inpaint.advanced && slots.mask) ctx.drawImage(maskOverlay(slots.mask), 0, 0, cv.width, cv.height);
-    drawStrokes(ctx, s.strokes, k, 0, 0);
-    ctx.globalCompositeOperation = 'source-in';       // keep the mask shape, take the colour from the map
-    ctx.drawImage(tint, 0, 0);
-    ctx.globalCompositeOperation = 'source-over';
+  cv.className = 'paint-mask';
+  const [colors, colorCtx] = mkCanvas(cv.width, cv.height);
+  colors.className = 'paint-colors';
+  const [paint, paintCtx] = mkCanvas(cv.width, cv.height);
+  const ring = el('div', {className: 'ring', hidden: true}), box = el('div', {className: 'scroll'}), frame = el('div', {className: 'paint'});
+  let maskTint, cutout;
+  const drawMerge = (x = 0, y = 0, w = cv.width, h = cv.height) => {
+    const image = colors.hidden ? s.img : colors;
+    const sx = (image.naturalWidth ?? image.width) / cv.width, sy = (image.naturalHeight ?? image.height) / cv.height;
+    ctx.clearRect(x, y, w, h);
+    ctx.drawImage(image, x * sx, y * sy, w * sx, h * sy, x, y, w, h);
+    applyCutout(ctx, cutout.canvas, slots.merge, x, y, w, h);
   };
-  let cur = null, pan = null, gesture = null;
+  const uploadedMask = () => state.inpaint.method === 'custom' && slots.mask;
+  const hasMask = () => uploadedMask() || s.strokes.some(st => !st.color && !st.erase);
+  const getMaskTint = () => {
+    if (!maskTint) {
+      const [tint, tx] = mkCanvas(cv.width, cv.height);
+      tx.drawImage(s.img, 0, 0, cv.width, cv.height);
+      const d = tx.getImageData(0, 0, cv.width, cv.height), a = d.data;
+      for (let i = 0; i < a.length; i += 4) {
+        const light = luminance(a[i], a[i + 1], a[i + 2]);
+        a[i] = a[i + 1] = a[i + 2] = 255 - Math.max(0, light - 165) * 165 / 90;
+        a[i + 3] = 255;
+      }
+      tx.putImageData(d, 0, 0);
+      maskTint = ctx.createPattern(tint, 'no-repeat');
+    }
+    return maskTint;
+  };
+  const redrawMask = () => {
+    const merge = isMergeMode();
+    frame.classList.toggle('merging', merge);
+    if (merge) {
+      cutout ||= mkCanvas(cv.width, cv.height)[1];
+      cutout.clearRect(0, 0, cv.width, cv.height);
+      for (const stroke of s.mergeStrokes) drawCutoutStroke(cutout, stroke, k);
+      drawMerge();
+      return;
+    }
+    if (cutout) { cutout.canvas.width = 0; cutout = null; }
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    if (!hasMask()) return;
+    const tint = getMaskTint();
+    const uploaded = uploadedMask();
+    if (uploaded) {
+      ctx.drawImage(maskOverlay(uploaded), 0, 0, cv.width, cv.height);
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.fillStyle = tint; ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    drawStrokes(ctx, s.strokes, k, 0, 0, null, tint);
+  };
+  let original, recolor, spray;
+  const undo = new Map(), tileSize = 128, undoLimit = 32 * 1024 * 1024;
+  let undoBytes = 0;
+  const showColors = visible => {
+    colors.hidden = !visible;
+    s.imgEl.style.opacity = visible ? '0' : '';
+  };
+  const renderColors = (left, top, right, bottom) => {
+    const w = right - left, h = bottom - top;
+    if (w <= 0 || h <= 0) return;
+    colorCtx.clearRect(left, top, w, h);
+    colorCtx.drawImage(paint, left, top, w, h, left, top, w, h);
+    compositeSpray(colorCtx, spray, left, top, w, h);
+  };
+  const rememberTiles = (st, bounds) => {
+    const [left, top, right, bottom] = bounds;
+    if (!undo.has(st)) undo.set(st, {tiles: new Map(), bytes: 0});
+    const entry = undo.get(st);
+    const prev = entry.bounds;
+    entry.bounds = prev ? [Math.min(left, prev[0]), Math.min(top, prev[1]), Math.max(right, prev[2]), Math.max(bottom, prev[3])] : bounds;
+    const rememberPaint = st.tool !== 'spray', rememberSpray = st.tool !== 'recolor' && spray;
+    for (let y = Math.floor(top / tileSize) * tileSize; y < bottom; y += tileSize) {
+      for (let x = Math.floor(left / tileSize) * tileSize; x < right; x += tileSize) {
+        const key = y * paint.width + x;
+        if (entry.tiles.has(key)) continue;
+        const w = Math.min(tileSize, paint.width - x), h = Math.min(tileSize, paint.height - y);
+        const tile = {x, y, w, h};
+        if (rememberPaint) tile.paint = paintCtx.getImageData(x, y, w, h);
+        if (rememberSpray) tile.spray = spray.getImageData(x, y, w, h);
+        if (rememberPaint && recolor) {
+          tile.coverage = new Uint32Array(w * h);
+          for (let row = 0, i = key; row < h; row++, i += paint.width) tile.coverage.set(recolor.coverage.subarray(i, i + w), row * w);
+        }
+        entry.tiles.set(key, tile);
+        const size = (Number(!!tile.paint) + Number(!!tile.spray) + Number(!!tile.coverage)) * w * h * 4;
+        entry.bytes += size; undoBytes += size;
+      }
+    }
+    while (undoBytes > undoLimit && undo.size > 1) {
+      const oldest = undo.keys().next().value;
+      undoBytes -= undo.get(oldest).bytes;
+      undo.delete(oldest);
+    }
+  };
+  const restoreTiles = entry => {
+    for (const {x, y, w, h, paint: pixels, spray: mist, coverage} of entry.tiles.values()) {
+      if (pixels) paintCtx.putImageData(pixels, x, y);
+      if (mist) spray.putImageData(mist, x, y);
+      if (coverage) for (let row = 0; row < h; row++) {
+        recolor.coverage.set(coverage.subarray(row * w, (row + 1) * w), (y + row) * paint.width + x);
+      }
+    }
+  };
+  const rebuildColors = () => {
+    const visible = s.strokes.some(st => st.color);
+    showColors(visible);
+    undo.clear(); undoBytes = 0;
+    recolor = spray = null;
+    if (!visible) return;
+    paintCtx.clearRect(0, 0, paint.width, paint.height);
+    ({recolor, spray} = drawPaintedImage(paintCtx, s, s.strokes, k, 0, 0, true));
+    renderColors(0, 0, paint.width, paint.height);
+  };
+  const redrawStroke = (st, start = 0) => {
+    if (isMergeMode()) {
+      const points = st.pts.slice(Math.max(0, start - 1));
+      const [l, t, r, b] = recolorBounds(points, k, 0, 0, st.size * k / 2 + 2, cv);
+      if (r <= l || b <= t) return;
+      drawCutoutStroke(cutout, st, k, start);
+      drawMerge(l, t, r - l, b - t);
+      return;
+    }
+    if (st.tool === 'brush') {
+      ctx.strokeStyle = ctx.fillStyle = getMaskTint();
+      brushPath(ctx, {size: st.size, pts: st.pts.slice(-2)}, k, 0, 0);
+      return;
+    }
+    if (st.erase && !st.colorOnly && hasMask()) drawMaskEraser(ctx, st, k, 0, 0, null, start);
+    if (!st.color && (!st.erase || colors.hidden)) return;
+    const points = st.erase ? st.pts.slice(Math.max(0, start - 1)) : st.pts.slice(-2);
+    const bounds = recolorBounds(points, k, 0, 0, st.size * k / 2 + (st.tool === 'recolor' ? recolorPad(st, k) : 2), paint);
+    if (bounds[0] >= bounds[2] || bounds[1] >= bounds[3]) return;
+    if (colors.hidden) {
+      paintCtx.clearRect(0, 0, paint.width, paint.height);
+      paintCtx.drawImage(s.img, 0, 0, s.w * k, s.h * k);
+      renderColors(0, 0, paint.width, paint.height);
+      showColors(true);
+    }
+    if (st.tool === 'recolor') {
+      recolor ||= createRecolorSource(paintCtx, 0, 0, paint.width, paint.height, recolorReference(s));
+      rememberTiles(st, bounds);
+      drawRecolorSegment(paintCtx, st, k, recolor, points);
+    } else if (st.tool === 'spray') {
+      spray ||= mkCanvas(paint.width, paint.height)[1];
+      rememberTiles(st, bounds);
+      drawSprayStroke(spray, st, k, start);
+    } else {
+      rememberTiles(st, bounds);
+      strokeSegments(st, start, segment => {
+        erasePaintStroke(paintCtx, segment, k, original ||= originalPaintPattern(paintCtx, s.img, k), spray);
+        clearErasedCoverage(recolor, segment, k);
+      });
+    }
+    renderColors(...bounds);
+  };
+  s.undoPaint = st => {
+    if (colors.hidden) return;
+    const entry = undo.get(st);
+    if (!entry || !s.strokes.some(st => st.color)) { rebuildColors(); return; }
+    restoreTiles(entry);
+    renderColors(...entry.bounds);
+    undo.delete(st); undoBytes -= entry.bytes;
+  };
+  s.redrawMask = redrawMask;
+  s.redraw = () => { rebuildColors(); redrawMask(); };
+  let cur = null, pan = null, gesture = null, paletteTouch = null, sprayTimer, eraseFrame = 0, erasedThrough = 0;
+  const flushEraser = () => {
+    cancelAnimationFrame(eraseFrame);
+    eraseFrame = 0;
+    if (cur?.erase && slots.inp === s && s.strokes.at(-1) === cur) {
+      redrawStroke(cur, erasedThrough);
+      erasedThrough = cur.pts.length;
+    }
+  };
+  s.paintCanvas = () => {
+    if (k !== 1 || colors.hidden) return null;
+    if (eraseFrame) flushEraser();
+    return colors;
+  };
+  const appendSpray = point => {
+    const start = cur.pts.length;
+    cur.pts.push(point);
+    redrawStroke(cur, start);
+  };
   const pts = new Map();
-  const pos = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * s.w, (e.clientY - r.top) / r.height * s.h, s.w / r.width]; };
+  const pos = (e, r) => [(e.clientX - r.left) / r.width * s.w, (e.clientY - r.top) / r.height * s.h];
+  const sampleSource = () => colors.hidden ? s.imgEl : colors;
   let last = null;                                    // last pointer position, so the ring can be redrawn without a move
-  const moveRing = e => {
-    const r = cv.getBoundingClientRect(), d = Number($('#brush').value);
+  const moveRing = (e, r = cv.getBoundingClientRect()) => {
+    const d = (cur?.size ?? Number($('#brush').value)) * r.width / s.w;
     last = {clientX: e.clientX, clientY: e.clientY};
     ring.hidden = false; ring.style.width = ring.style.height = d + 'px';
     ring.classList.toggle('erase', tool === 'eraser');
+    ring.style.borderColor = tool === 'recolor' || tool === 'spray' ? $('#inp-color').value : '';
     ring.style.left = (e.clientX - r.left - d / 2) + 'px'; ring.style.top = (e.clientY - r.top - d / 2) + 'px';
   };
   s.ringRefresh = () => { if (last && !ring.hidden) moveRing(last); };
   const moving = e => spaceHeld || e.button === 1;
   const two = () => { const [a, b] = [...pts.values()]; return {d: Math.hypot(a[0] - b[0], a[1] - b[1]), x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2}; };
+  frame.oncontextmenu = e => { if (e.pointerType === 'touch' || (colorSampler && pts.size)) e.preventDefault(); };
   cv.onpointerdown = e => {
     if (e.button === 2) {                             // right button never paints: step aside so the browser menu belongs to the picture
       cv.style.pointerEvents = 'none';
@@ -1726,15 +2770,36 @@ function paintView(s) {
     try { cv.setPointerCapture(e.pointerId); } catch (err) {}
     pts.set(e.pointerId, [e.clientX, e.clientY]);
     if (pts.size === 2) {                             // two fingers move and zoom the picture instead of painting
-      if (cur) { s.strokes.pop(); cur = null; s.redraw(); }
-      ring.hidden = true; pan = null; gesture = two();
+      clearInterval(sprayTimer);
+      cancelAnimationFrame(eraseFrame); eraseFrame = 0;
+      if (cur && inpStrokes(s).at(-1) === cur) inpUndo();
+      cur = null;
+      colorSampler?.hide();
+      ring.hidden = true; pan = paletteTouch = null; gesture = two();
       return;
     }
     if (gesture || pts.size > 2) return;
-    if (moving(e)) { e.preventDefault(); ring.hidden = true; pan = {x: e.clientX, y: e.clientY, l: box.scrollLeft, t: box.scrollTop}; return; }
-    const [x, y, f] = pos(e);
-    cur = {size: Number($('#brush').value) * f, erase: tool === 'eraser', pts: [[x, y]]};
-    s.strokes.push(cur); s.redraw(); moveRing(e);
+    if (moving(e)) { e.preventDefault(); colorSampler?.hide(); ring.hidden = true; pan = {x: e.clientX, y: e.clientY, l: box.scrollLeft, t: box.scrollTop}; return; }
+    if (colorSampler) {
+      if (e.pointerType === 'touch') e.preventDefault();
+      colorSampler.preview(e, sampleSource());
+      return;
+    }
+    if (e.pointerType === 'touch' && document.body.classList.contains('color-picker-open')) {
+      paletteTouch = {x: e.clientX, y: e.clientY, moved: false};
+      return;
+    }
+    const rect = cv.getBoundingClientRect(), [x, y] = pos(e, rect);
+    const color = tool === 'recolor' || tool === 'spray' ? $('#inp-color').value : null;
+    cur = {size: Number($('#brush').value), tool, color, erase: tool === 'eraser', pts: [[x, y]]};
+    inpStrokes(s).push(cur);
+    redrawStroke(cur);
+    if (cur.erase) erasedThrough = 1;
+    if (tool === 'spray') sprayTimer = setInterval(() => {
+      if (slots.inp !== s || !cur || s.strokes.at(-1) !== cur) { clearInterval(sprayTimer); return; }
+      appendSpray(cur.pts.at(-1));
+    }, 65);
+    moveRing(e, rect);
   };
   cv.onpointermove = e => {
     if (pts.has(e.pointerId)) pts.set(e.pointerId, [e.clientX, e.clientY]);
@@ -1747,37 +2812,79 @@ function paintView(s) {
       return;
     }
     if (pan) { box.scrollLeft = pan.l - (e.clientX - pan.x); box.scrollTop = pan.t - (e.clientY - pan.y); return; }
-    if (moving(e)) { ring.hidden = true; cv.style.cursor = 'grab'; return; }
+    if (paletteTouch && pts.has(e.pointerId)) {
+      if (!paletteTouch.moved && Math.hypot(e.clientX - paletteTouch.x, e.clientY - paletteTouch.y) < 6) return;
+      paletteTouch.moved = true;
+      ring.hidden = true;
+      window.scrollBy(0, paletteTouch.y - e.clientY);
+      paletteTouch.y = e.clientY;
+      return;
+    }
+    if (moving(e)) { colorSampler?.hide(); ring.hidden = true; cv.style.cursor = 'grab'; return; }
+    if (colorSampler) { cv.style.cursor = 'crosshair'; colorSampler.preview(e, sampleSource()); return; }
     cv.style.cursor = 'none';
-    moveRing(e);
-    if (!cur) return;
-    const [x, y] = pos(e);
-    cur.pts.push([x, y]); s.redraw();
+    const rect = cv.getBoundingClientRect();
+    moveRing(e, rect);
+    if (!cur || !pts.has(e.pointerId) || inpStrokes(s).at(-1) !== cur) return;
+    const [x, y] = pos(e, rect);
+    const [lastX, lastY] = cur.pts[cur.pts.length - 1];
+    if (x === lastX && y === lastY) return;
+    if (cur.tool === 'spray') appendSpray([x, y]);
+    else {
+      cur.pts.push([x, y]);
+      if (isMergeMode()) redrawStroke(cur, cur.pts.length - 1);
+      else if (cur.erase) eraseFrame ||= requestAnimationFrame(flushEraser);
+      else redrawStroke(cur);
+    }
   };
   cv.onpointerup = cv.onpointercancel = e => {
+    clearInterval(sprayTimer);
+    if (eraseFrame) flushEraser();
+    // Keep the settled overlay identical to the full stroke used for the inpaint mask.
+    if (cur?.tool === 'brush' && cur.pts.length > 1 && s.strokes.at(-1) === cur) redrawMask();
+    if (colorSampler && !gesture && !pan && !cur && !paletteTouch && e.type !== 'pointercancel' && e.button === 0 && pts.has(e.pointerId)) {
+      colorSampler.pick(e, sampleSource());
+    }
+    if (e.type === 'pointercancel' || e.pointerType !== 'mouse') colorSampler?.hide();
     pts.delete(e.pointerId);
     if (gesture && !pts.size) gesture = null;
-    cur = null; pan = null;
+    cur = pan = paletteTouch = null;
     if (e.pointerType !== 'mouse') ring.hidden = true;
   };
-  cv.onpointerleave = () => { if (!cur) ring.hidden = true; };
-  s.redraw();
+  cv.onpointerleave = () => { colorSampler?.hide(); if (!cur) ring.hidden = true; };
   s.imgEl = el('img', {src: s.url, draggable: false});
-  box.append(el('div', {className: 'paint'}, s.imgEl, cv, ring));
+  frame.append(s.imgEl, colors, cv, ring);
+  box.append(frame);
   s.box = box;
+  s.redraw();
   return box;
 }
 
-async function uploadImage(blob, name) {
+async function uploadImage(blob, name, signal) {
   const fd = new FormData();
   fd.append('image', blob, `${Date.now()}_${String(name).replace(/[^\w.-]+/g, '_')}`);
   fd.append('type', 'input'); fd.append('subfolder', 'fooocus'); fd.append('overwrite', 'true');
-  const r = await fetch(base() + '/upload/image', {method: 'POST', body: fd});
+  const r = await fetch(base() + '/upload/image', {method: 'POST', body: fd, signal});
   if (!r.ok) throw new Error('Image upload failed (HTTP ' + r.status + ').');
   const d = await r.json();
   return d.subfolder ? d.subfolder + '/' + d.name : d.name;
 }
-const toBlob = cv => new Promise(res => cv.toBlob(res, 'image/png'));
+const toBlob = cv => new Promise((resolve, reject) => cv.toBlob(blob => {
+  if (blob) resolve(blob);
+  else reject(new Error(`Could not encode the ${cv.width}×${cv.height} image.`));
+}, 'image/png'));
+async function encodeExportCanvas(canvas) {
+  try { return await toBlob(canvas); }
+  finally { canvas.width = 0; }
+}
+async function exportPaintBlob(s, strokes, signal) {
+  const live = s.paintCanvas?.();
+  if (live) return toBlob(live);
+  const [canvas, ctx] = mkCanvas(s.w, s.h);
+  try { await drawExportPaint(ctx, s, strokes, 0, 0, signal); return await toBlob(canvas); }
+  finally { canvas.width = 0; }
+}
+const snapshotStrokes = strokes => strokes.map(st => ({...st, pts: st.pts.slice()}));
 const effUpscaler = () => {
   const list = (info && comboOptions(info, 'UpscaleModelLoader', 'model_name')) || [];
   if (state.upscaler === NO_UPSCALER) return null;
@@ -1824,16 +2931,65 @@ function engineFiles() {
   return head && patch ? {head, patch} : null;
 }
 const engineOn = () => { const st = wfState(); return st.engine != null ? st.engine : state.workflow === 'SDXL'; };
-async function prepareInpaint() {
-  const s = slots.inp, o = state.inpaint;
+function inpaintDenoise() {
+  const o = state.inpaint;
+  if (o.method === 'custom' && o.denoiseOverride != null) return o.denoiseOverride;
+  // Anima starts from pure noise at full denoise. Keep some of the source in the default edit mode.
+  return state.workflow === 'Anima' && (o.method === 'default' || o.method === 'custom') ? 0.75 : INPAINT_METHODS[o.method][1];
+}
+function inpaintPreviewCrop(x0, y0, x1, y1, width, height) {
+  const pad = Math.max(16, Math.ceil(0.15 * Math.max(x1 - x0, y1 - y0)));
+  const left = Math.max(0, x0 - pad), top = Math.max(0, y0 - pad);
+  const right = Math.min(width, x1 + pad), bottom = Math.min(height, y1 + pad);
+  if (left === 0 && top === 0 && right === width && bottom === height) return null;
+  return [left / width, top / height, right / width, bottom / height];
+}
+async function prepareMerge(signal) {
+  const s = slots.inp, layer = slots.merge;
+  if (!s || !layer) throw new Error('Load an inpaint image and a second image to merge.');
+  const strokes = snapshotStrokes(s.strokes), cuts = snapshotStrokes(s.mergeStrokes);
+  const [out, ctx] = mkCanvas(s.w, s.h);
+  let cutout;
+  try {
+    await drawExportPaint(ctx, s, strokes, 0, 0, signal);
+    signal?.throwIfAborted();
+    if (cuts.length) {
+      const [mask, mx] = mkCanvas(s.w, s.h);
+      cutout = mask;
+      for (const stroke of cuts) drawCutoutStroke(mx, stroke, 1);
+    }
+    applyCutout(ctx, cutout, layer);
+    if (cutout) cutout.width = 0;
+    const name = (s.file.name || 'image').replace(/\.\w+$/, '');
+    const image = await uploadImage(await encodeExportCanvas(out), name + '-merge.png', signal);
+    return {kind: 'merge', image, width: s.w, height: s.h};
+  } finally {
+    if (cutout?.width) cutout.width = 0;
+    if (out.width) out.width = 0;
+  }
+}
+async function prepareInpaint(signal) {
+  const s = slots.inp, o = {...state.inpaint};
   if (!s) throw new Error('Drop an image into the "Inpaint or Outpaint" tab first.');
-  const W0 = s.w, H0 = s.h, d = o.method === 'default' ? o.dirs : [], pf = (o.pad || 30) / 100;
+  const custom = o.method === 'custom';
+  const W0 = s.w, H0 = s.h, d = o.method === 'default' || custom ? o.dirs : [], pf = (o.pad || 30) / 100;
   const L = d.includes('Left') ? Math.round(W0 * pf) : 0, R = d.includes('Right') ? Math.round(W0 * pf) : 0;
   const T = d.includes('Top') ? Math.round(H0 * pf) : 0, B = d.includes('Bottom') ? Math.round(H0 * pf) : 0;
   const W = W0 + L + R, H = H0 + T + B, outpaint = W !== W0 || H !== H0;
+  const strokes = snapshotStrokes(s.strokes), uploaded = custom && slots.mask;
+  const stamp = (s.file.name || 'image').replace(/\.\w+$/, '');
+  const hasPaint = strokes.some(st => st.color);
+  if (!outpaint && !uploaded && !(custom && o.invert) && !strokes.some(st => !st.color && !st.erase)) {
+    if (!hasPaint) throw new Error('Paint over the area to change (or pick an Outpaint Direction) first.');
+    const image = await uploadImage(await exportPaintBlob(s, strokes, signal), stamp + '.png', signal);
+    return {kind: 'paint', image, width: W, height: H};
+  }
+  const denoise = outpaint ? 1 : inpaintDenoise();
+  const engine = engineOn() && o.method !== 'detail' ? engineFiles() : null;
   // image, with outpaint bands filled by stretching the edge pixels
   const [ic, ix] = mkCanvas(W, H);
-  ix.drawImage(s.img, L, T);
+  try { await drawExportPaint(ix, s, strokes, L, T, signal); }
+  catch (err) { ic.width = 0; throw err; }
   if (L) ix.drawImage(ic, L, T, 1, H0, 0, T, L, H0);
   if (R) ix.drawImage(ic, L + W0 - 1, T, 1, H0, L + W0, T, R, H0);
   if (T) ix.drawImage(ic, 0, T, W, 1, 0, 0, W, T);
@@ -1841,24 +2997,39 @@ async function prepareInpaint() {
   // painted + uploaded mask over the original image area
   let [mc, mx] = mkCanvas(W0, H0);
   mx.fillStyle = '#000'; mx.fillRect(0, 0, W0, H0);
-  if (o.advanced && slots.mask) mx.drawImage(slots.mask.img, 0, 0, W0, H0);
-  drawStrokes(mx, s.strokes || [], 1, 0, 0, '#000');
-  binarize(mx, W0, H0, 127, o.advanced && o.invert);
-  if (o.advanced && o.erode) mc = morph(mc, W0, H0, o.erode);
+  if (uploaded) mx.drawImage(uploaded.img, 0, 0, W0, H0);
+  drawStrokes(mx, strokes, 1, 0, 0, '#000');
+  binarize(mx, W0, H0, 127, custom && o.invert);
+  if (custom && o.erode) {
+    const original = mc;
+    mc = morph(mc, W0, H0, o.erode);
+    original.width = 0;
+  }
   // full-size hard mask: outpaint bands are always white
   const [hc, hx] = mkCanvas(W, H);
   hx.fillStyle = outpaint ? '#fff' : '#000'; hx.fillRect(0, 0, W, H);
   hx.drawImage(mc, L, T);
+  mc.width = 0;
   const hd = hx.getImageData(0, 0, W, H), ha = hd.data;
   let bx0 = W, by0 = H, bx1 = -1, by1 = -1;
   for (let y = 0, i = 0; y < H; y++) for (let x = 0; x < W; x++, i += 4) if (ha[i] > 127) {
     if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y;
   }
-  if (bx1 < 0) throw new Error('Paint over the area to change (or pick an Outpaint Direction) first.');
-  const reg = inpaintRegion(bx0, by0, bx1 + 1, by1 + 1, W, H, outpaint ? 1 : o.field);
+  if (bx1 < 0) {
+    hc.width = 0;
+    if (!hasPaint) throw new Error('Paint over the area to change (or pick an Outpaint Direction) first.');
+    const image = await uploadImage(await encodeExportCanvas(ic), stamp + '.png', signal);
+    return {kind: 'paint', image, width: W, height: H};
+  }
   // soft mask for pasting the result back: the hard mask grown and feathered
-  const r = Math.max(6, Math.round(0.02 * Math.max(reg.crop.w, reg.crop.h)));
-  const px = (grow, blur) => blurred(morph(hc, W, H, grow), W, H, blur)[1].getImageData(0, 0, W, H).data;
+  const px = (grow, blur) => {
+    const grown = morph(hc, W, H, grow);
+    const [soft, context] = blurred(grown, W, H, blur);
+    if (grown !== hc) grown.width = 0;
+    const pixels = context.getImageData(0, 0, W, H).data;
+    soft.width = 0;
+    return pixels;
+  };
   let sa;
   if (outpaint) {
     // denoising strength fades out over a strip of the original image, so the seam gets redrawn lightly instead of ending in a step
@@ -1866,17 +3037,20 @@ async function prepareInpaint() {
     sa = px(2.2 * D, D / 2);
     for (let i = 0; i < ha.length; i += 4) ha[i] = Math.max(ha[i], ga[i]);
   } else {
+    const field = (custom ? o.field : null) ?? INPAINT_METHODS[o.method][2];
+    const r = inpaintFeatherRadius(bx0, by0, bx1 + 1, by1 + 1, W, H, field);
     const ga = px(r, r / 2);                          // slight feather outside the painted area
     sa = px(2 * r, r);
     for (let i = 0; i < ha.length; i += 4) ha[i] = Math.max(ha[i], ga[i]);
   }
   for (let i = 0; i < ha.length; i += 4) { ha[i + 1] = Math.max(sa[i], ha[i]); ha[i + 2] = 0; ha[i + 3] = 255; }   // R = denoise mask, G = paste mask
   hx.putImageData(hd, 0, 0);
-  const stamp = (s.file.name || 'image').replace(/\.\w+$/, '');
-  const [image, mask] = await Promise.all([uploadImage(await toBlob(ic), stamp + '.png'), uploadImage(await toBlob(hc), stamp + '_mask.png')]);
-  return {kind: 'inpaint', image, mask, crop: reg.crop, work: reg.work, denoise: outpaint ? 1 : o.denoise, width: W, height: H, outpaint,
+  const imageBlob = await encodeExportCanvas(ic), maskBlob = await encodeExportCanvas(hc);
+  const [image, mask] = await Promise.all([uploadImage(imageBlob, stamp + '.png', signal), uploadImage(maskBlob, stamp + '_mask.png', signal)]);
+  return {kind: 'inpaint', image, mask, denoise, width: W, height: H, outpaint,
+    previewCrop: outpaint ? null : inpaintPreviewCrop(bx0, by0, bx1 + 1, by1 + 1, W, H),
     differential: !!(info && info.DifferentialDiffusion),
-    engine: engineOn() && o.method !== 'detail' ? engineFiles() : null};
+    engine};
 }
 
 // ---------- Input Image: Metadata / Describe ----------
@@ -1931,7 +3105,8 @@ async function describe() {
     renderMetaBox();
   } catch (e) {
     const t = errText(e);
-    renderMetaBox('Describe failed: ' + t + (/timeout/i.test(t) ? '. The tagger could not download its model in time; put the model files into the models folder of the tagger extension by hand.' : ''));
+    const help = /timeout/i.test(t) ? ['. See ', externalLink('WD14 model download and installation', WD14_URL + '#offline-use'), '.'] : [];
+    renderMetaBox('Describe failed: ' + t, ...help);
   }
 }
 
@@ -1944,7 +3119,12 @@ async function autoMask() {
   if (!text) { showMsg('Type what to mask, for example: face'); return; }
   showMsg('');
   try {
-    const name = await uploadImage(s.file, s.file.name || 'image.png');
+    let image = s.file, filename = image.name || 'image.png';
+    if (s.strokes.some(st => st.color)) {
+      image = await exportPaintBlob(s, snapshotStrokes(s.strokes));
+      filename = filename.replace(/\.[^.]+$/, '') + '-paint.png';
+    }
+    const name = await uploadImage(image, filename);
     const sams = comboOptions(info, SEG.sam, 'model_name') || [];
     const sam = withDefaults(info, SEG.sam, {});
     const small = sams.find(n => /vit_b/i.test(n));           // the smallest SAM is plenty for a mask
@@ -1960,21 +3140,26 @@ async function autoMask() {
     const im = (await runAux('Generating mask', g)).flatMap(o => o.images || [])[0];
     if (!im) throw new Error('no mask came back');
     const blob = await (await fetch(viewUrl(base(), im))).blob();
-    slots.mask = await loadImageFile(new File([blob], 'mask.png', {type: blob.type || 'image/png'}));
+    const mask = await loadImageFile(new File([blob], 'mask.png', {type: blob.type || 'image/png'}));
+    if (slots.inp !== s) { URL.revokeObjectURL(mask.url); return; }
+    slots.mask = mask;
     drops.mask.draw();
-    if (s.redraw) s.redraw();
+    s.redrawMask();
   } catch (e) { showMsg('Mask generation failed: ' + errText(e)); }
 }
-function renderMetaBox(status) {
-  const box = $('#meta-box'), s = slots.meta, note = t => el('div', {className: 'note', style: 'margin:0 0 8px', textContent: t});
+function renderMetaBox(...status) {
+  const box = $('#meta-box'), s = slots.meta, note = (...content) => el('div', {className: 'note', style: 'margin:0 0 8px'}, ...content);
   box.innerHTML = '';
   if (!s) { box.append(note('Drop an image to read the parameters it was generated with.')); return; }
+  const table = el('table');
+  const rows = {Name: '', ...s.meta};
+  rows.Name = imageName(s.file.name);
+  for (const [k, v] of Object.entries(rows)) table.append(el('tr', null, el('td', {textContent: k}), el('td', {textContent: String(v)})));
+  box.append(table);
   if (s.meta) {
-    const table = el('table');
-    for (const [k, v] of Object.entries(s.meta)) table.append(el('tr', null, el('td', {textContent: k}), el('td', {textContent: String(v)})));
     const b = el('button', {textContent: 'Apply Metadata'});
     b.onclick = () => { applyMeta(s.meta); renderMetaBox('Applied.'); };
-    box.append(table, b);
+    box.append(b);
   } else {
     box.append(el('div', {textContent: 'No metadata found in this image.', style: 'margin-bottom:10px'}));
     if (s.described) {
@@ -1987,23 +3172,36 @@ function renderMetaBox(status) {
       const b = el('button', {textContent: 'Describe Image'});
       b.onclick = describe;
       box.append(b);
-    } else box.append(note('Describing an image needs a tagger node, which ComfyUI does not include. ComfyUI-WD14-Tagger was not found on this server; install it, restart ComfyUI and press Refresh All Files.'));
+    } else box.append(note('To describe an image, install ', externalLink('ComfyUI-WD14-Tagger', WD14_URL), ', restart ComfyUI and press Refresh All Files.'));
   }
-  if (status) box.append(el('div', {className: 'note', textContent: status}));
+  if (status.length) box.append(el('div', {className: 'note'}, ...status));
+}
+async function readImageMetadata(file) {
+  try { return metaFromChunks(parsePngText(await file.arrayBuffer())); } catch (e) { return null; }
+}
+function importSeed(value) {
+  if (value == null || !/^\d+$/.test(String(value))) return;
+  state.seed = String(value); state.seedImported = true;
+  $('#seed').value = state.seed;
+  save();
 }
 function applyMeta(m) {
+  const inpaint = isInpaintMeta(m), partial = inpaint || hasMetaValue(m['Input Image']);
+  if (partial) m = Object.fromEntries(Object.entries(normalizeInpaintMeta(m)).filter(([, v]) => hasMetaValue(v)));
   if (m['Workflow'] && (TEMPLATES[m['Workflow']] || state.customWfs[m['Workflow']])) state.workflow = m['Workflow'];
   const st = wfState(), has = (cls, f, v) => !info || (comboOptions(info, cls, f) || []).includes(v);
-  if (m['Prompt'] != null) state.prompt = String(m['Prompt']);
-  state.negative = m['Negative Prompt'] != null ? String(m['Negative Prompt']) : '';
+  if (inpaint) {
+    if (m[INPAINT_PROMPT] != null) state.inpaint.extra = String(m[INPAINT_PROMPT]);
+  } else if (m['Prompt'] != null) state.prompt = String(m['Prompt']);
+  if (!partial || m['Negative Prompt'] != null) state.negative = String(m['Negative Prompt'] ?? '');
   $('#prompt').value = state.prompt;
   if (m['Styles'] != null) { const names = new Set(allStyles().map(s => s.name)); st.styles = String(m['Styles']).split(', ').filter(n => names.has(n)); }
   if (PERF[m['Performance']] || m['Performance'] === CUSTOM) state.performance = m['Performance'];
   const res = String(m['Resolution'] || '').replace(/x/i, '×'), wh = res.match(/^(\d+)×(\d+)$/);
   if (ASPECTS.includes(res)) state.aspect = res;
-  else if (wh && !m['Input Image']) { state.aspect = CUSTOM; state.customW = Number(wh[1]); state.customH = Number(wh[2]); }
+  else if (wh && !partial) { state.aspect = CUSTOM; state.customW = Number(wh[1]); state.customH = Number(wh[2]); }
   if (m['CLIP Skip'] != null && isFinite(m['CLIP Skip'])) st.clipSkip = Number(m['CLIP Skip']);
-  if (m['Seed'] != null && /^\d+$/.test(String(m['Seed']))) { state.seed = String(m['Seed']); state.random = false; }
+  importSeed(m['Seed']);
   if (m['Guidance Scale'] != null && isFinite(m['Guidance Scale'])) st.cfg = Number(m['Guidance Scale']);
   if (typeof m['Sampler'] === 'string' && has('KSampler', 'sampler_name', m['Sampler'])) st.sampler = m['Sampler'];
   if (typeof m['Scheduler'] === 'string' && has('KSampler', 'scheduler', m['Scheduler'])) st.scheduler = m['Scheduler'];
@@ -2019,6 +3217,24 @@ function applyMeta(m) {
     if (tb) Object.assign(turbo(), {on: true, name: tb[1], weight: Number(tb[2])});
   }
   save(); renderAll(); growAll();
+}
+async function applyHistoryAction({action, url, t, meta, slot}) {
+  if (action === 'metadata') { applyMeta(meta); return; }
+  const file = await fileFromImage(versionedUrl(url, t));
+  const key = slot === 'merge' ? 'merge' : 'inp';
+  if (key === 'merge') state.inpaint.method = 'merge';
+  state.inputImage = true; state.itab = 'inpaint'; save(); renderInputPanel();
+  if (!(await drops[key].take(file))) throw new Error('Could not read this file as an image.');
+  if (key === 'inp') importSeed(meta?.Seed);
+  closeViewer();
+  $(`#${key}-drop`).scrollIntoView({block: 'nearest'});
+}
+async function fileFromImage(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Could not load image (HTTP ' + response.status + ').');
+  const blob = await response.blob();
+  const name = imageName(new URL(url, location.href).searchParams.get('filename')) || (blob.type === 'image/jpeg' ? 'image.jpg' : 'image.png');
+  return new File([blob], name, {type: blob.type});
 }
 
 // ---------- rendering: Input Image panel ----------
@@ -2037,11 +3253,23 @@ function renderInputPanel() {
   const ups = [NO_UPSCALER, ...((info && comboOptions(info, 'UpscaleModelLoader', 'model_name')) || [])];
   fillSelect($('#upscaler'), ups, state.upscaler === NO_UPSCALER ? NO_UPSCALER : (effUpscaler() || state.upscaler || NO_UPSCALER));
   const o = state.inpaint;
-  $('#inp-adv').checked = o.advanced;
-  document.querySelectorAll('.advm').forEach(e => e.hidden = !o.advanced);
+  const custom = o.method === 'custom', merging = isMergeMode();
+  document.querySelectorAll('.inp-custom').forEach(e => e.hidden = !custom);
   const ms = $('#inp-method'); ms.innerHTML = '';
   for (const [k, v] of Object.entries(INPAINT_METHODS)) ms.append(el('option', {value: k, textContent: v[0]}));
   ms.value = o.method;
+  $('#merge-source-box').hidden = !merging;
+  $('#inp-extra-box').hidden = merging;
+  if (merging && !$('#color-picker').hidden) $('.paint-palette').click();
+  for (const selector of ['.paint-palette', '#tool-recolor', '#tool-spray']) $(selector).hidden = merging;
+  if (merging && tool !== 'brush' && tool !== 'eraser') setTool('brush');
+  const brush = $('#tool-brush'), eraser = $('#tool-eraser'), clear = $('#inp-clear');
+  brush.title = merging ? 'Cut out (E)' : 'Mask (E)';
+  brush.setAttribute('aria-label', merging ? 'Cut out' : 'Mask');
+  eraser.title = merging ? 'Restore (Q)' : 'Erase mask and color (Q)';
+  eraser.setAttribute('aria-label', merging ? 'Restore' : 'Eraser');
+  clear.title = merging ? 'Clear cut-out (Ctrl+Del)' : 'Clear the mask (Ctrl+Del)';
+  clear.setAttribute('aria-label', merging ? 'Clear cut-out' : 'Clear mask');
   $('#inp-extra').value = o.extra;
   const db = $('#inp-dirs'); db.innerHTML = '';
   for (const name of ['Left', 'Right', 'Top', 'Bottom']) {
@@ -2049,37 +3277,49 @@ function renderInputPanel() {
     c.onchange = () => { o.dirs = c.checked ? [...o.dirs, name] : o.dirs.filter(x => x !== name); save(); };
     db.append(el('label', null, c, name));
   }
-  $('#inp-dirs-box').hidden = o.method !== 'default';
+  $('#inp-dirs-box').hidden = o.method !== 'default' && !custom;
   sliderField($('#inp-pad'), 'Outpaint Expansion (% of the side)', 5, 100, 1, o.pad || 30, v => { o.pad = v; save(); });
-  const eng = engineFiles();
+  const eng = merging ? null : engineFiles();
   $('#inp-engine-box').hidden = !eng || o.method === 'detail';
   $('#inp-engine').checked = engineOn();
-  $('#automask-box').hidden = !o.advanced || !segAvailable();
+  $('#automask-box').hidden = !custom || !segAvailable();
   $('#mask-prompt').value = o.maskPrompt || '';
   const notes = [];
-  if (info && !eng) notes.push('Fooocus inpaint engine (SDXL only) was not found on this server: it needs the ComfyUI Inpaint Nodes extension with fooocus_inpaint_head.pth and inpaint_v26.fooocus.patch in models/inpaint. Using standard ComfyUI inpainting.');
-  if (info && !segAvailable()) notes.push('Automatic mask generation needs the "segment anything" extension (comfyui_segment_anything), which was not found on this server. Paint or upload the mask instead.');
+  if (info && state.workflow === 'SDXL' && !merging && !eng) {
+    const files = 'https://huggingface.co/lllyasviel/fooocus_inpaint/blob/main/';
+    notes.push(el('div', null, 'To use the Fooocus inpaint engine for SDXL, install ',
+      externalLink('ComfyUI Inpaint Nodes', 'https://github.com/Acly/comfyui-inpaint-nodes'), ' and put ',
+      externalLink('fooocus_inpaint_head.pth', files + 'fooocus_inpaint_head.pth'), ' and ',
+      externalLink('inpaint_v26.fooocus.patch', files + 'inpaint_v26.fooocus.patch'), ' in models/inpaint. Using standard ComfyUI inpainting.'));
+  }
+  if (info && custom && !segAvailable()) notes.push(el('div', null, 'For automatic mask generation, install ',
+    externalLink('segment anything', 'https://github.com/storyicon/comfyui_segment_anything'), '. You can also paint or upload a mask.'));
   $('#inp-note').hidden = !notes.length;
-  $('#inp-note').textContent = notes.join('\n');
+  $('#inp-note').replaceChildren(...notes);
   $('#inp-invert').checked = o.invert;
-  sliderField($('#inp-erode'), 'Mask Erode or Dilate', -64, 64, 1, o.erode, v => { o.erode = v; save(); }, 'Positive value will make white area in the mask larger, negative value will make white area smaller.');
-  sliderField($('#inp-denoise'), 'Inpaint Denoising Strength', 0, 1, 0.001, o.denoise, v => { o.denoise = v; save(); }, 'Same as the denoising strength in A1111 inpaint.');
-  sliderField($('#inp-field'), 'Inpaint Respective Field', 0, 1, 0.001, o.field, v => { o.field = v; save(); }, 'The area to inpaint. Value 0 is same as "Only Masked" in A1111. Value 1 is same as "Whole Image" in A1111.');
+  if (!merging) {
+    sliderField($('#inp-erode'), 'Mask Erode or Dilate', -64, 64, 1, o.erode, v => { o.erode = v; save(); }, 'Positive value will make white area in the mask larger, negative value will make white area smaller.');
+    sliderField($('#inp-denoise'), 'Inpaint Denoising Strength', 0, 1, 0.001, inpaintDenoise(), v => { o.denoiseOverride = v; save(); }, 'Same as the denoising strength in A1111 inpaint.');
+    sliderField($('#inp-field'), 'Inpaint Mask Feathering', 0, 1, 0.001, o.field ?? INPAINT_METHODS.custom[2], v => { o.field = v; save(); }, 'Higher values widen the gradient around the painted area.');
+  }
   renderMetaBox();
 }
 
 // ---------- image viewer: zoom, pan, previous / next, thumbnails ----------
 // Small previews: the fooocus-ui extension resizes them on the server; without it ComfyUI only re-encodes the full-size picture.
 let hasThumbs = false;
+const versionedUrl = (url, t) => t ? `${url}&v=${t}` : url;
 const lightUrl = u => u.includes('/view?') ? u + '&preview=webp;60' : u;
 const thumbUrl = (u, v) => {
   const i = u.indexOf('/view?');
-  return i < 0 || !hasThumbs ? lightUrl(u) : u.slice(0, i) + '/fooocus/thumb?' + u.slice(i + 6) + '&size=640' + (v ? '&v=' + v : '');
+  if (i < 0) return u;
+  return !hasThumbs ? lightUrl(versionedUrl(u, v)) : versionedUrl(u.slice(0, i) + '/fooocus/thumb?' + u.slice(i + 6) + '&size=640', v);
 };
 function thumbImg(url, v, props) {                  // <img> with a small preview; the browser menu ("Save image as") still gets the original file
   const img = el('img', Object.assign({src: thumbUrl(url, v)}, props));
-  img.onerror = () => { img.onerror = null; img.src = lightUrl(url); };
-  const original = () => { if (img.src !== url) { img.onerror = null; img.src = url; } };
+  const full = versionedUrl(url, v);
+  img.onerror = () => { img.onerror = null; img.src = lightUrl(full); };
+  const original = () => { if (img.src !== full) { img.onerror = null; img.src = full; } };
   img.addEventListener('pointerdown', e => { if (e.button === 2) original(); });
   img.addEventListener('contextmenu', original);
   return img;
@@ -2088,6 +3328,8 @@ const LB = {list: [], i: 0, z: 1, x: 0, y: 0, root: null};
 const viewerOpen = () => !!LB.root;
 function viewerApply() {
   const r = LB.root;
+  r.el.classList.toggle('has-thumbs', LB.list.length > 1);
+  r.img.draggable = r.dragImages && LB.z <= 1.001;
   r.img.style.transform = `translate(-50%,-50%) translate(${LB.x}px,${LB.y}px) scale(${LB.z})`;
   r.thumbs.hidden = LB.z > 1.001 || LB.list.length < 2;
   r.info.textContent = `${LB.i + 1} / ${LB.list.length}` + (LB.z > 1.001 ? ` · ${Math.round(LB.z * 100)}%` : '');
@@ -2095,8 +3337,10 @@ function viewerApply() {
 }
 function viewerShow(i) {
   const n = LB.list.length, r = LB.root;
-  LB.i = (i % n + n) % n; LB.z = 1; LB.x = LB.y = 0;
-  const cur = LB.i, url = LB.list[cur].url, light = thumbUrl(url);
+  LB.i = (i % n + n) % n;
+  const cur = LB.i, image = LB.list[cur];
+  const url = versionedUrl(image.url, image.t), light = thumbUrl(image.url, image.t);
+  const here = () => LB.root === r && LB.i === cur && LB.list[cur] === image;
   const had = r.thumbs.childElementCount > 0;
   r.thumbs.innerHTML = '';
   const centre = () => {
@@ -2104,9 +3348,10 @@ function viewerShow(i) {
     if (t) r.thumbs.scrollLeft = t.offsetLeft - r.thumbs.offsetLeft - (r.thumbs.clientWidth - t.offsetWidth) / 2;
   };
   const strip = () => {                               // thumbnails (7 on each side) are requested only once the picture is on screen
-    if (LB.root !== r || LB.i !== cur || r.thumbs.childElementCount) return;
+    if (!here() || r.thumbs.childElementCount) return;
     for (let k = Math.max(0, cur - 7); k <= Math.min(n - 1, cur + 7); k++) {
-      const t = thumbImg(LB.list[k].url, 0, {className: k === cur ? 'sel' : ''});
+      const entry = LB.list[k];
+      const t = thumbImg(entry.url, entry.t, {className: k === cur ? 'sel' : ''});
       t.onclick = () => viewerShow(k);
       t.addEventListener('load', centre);
       r.thumbs.append(t);
@@ -2114,88 +3359,132 @@ function viewerShow(i) {
     centre();
   };
   if (had) strip();                                   // when leafing through, the strip moves at once
-  r.img.oncontextmenu = () => { if (LB.i === cur && r.img.src !== url) r.img.src = url; };
-  const here = () => LB.root === r && LB.i === cur;
-  const put = src => { if (!here()) return; r.img.onload = r.img.onerror = strip; r.img.src = src; };
+  r.img.oncontextmenu = () => { if (here() && r.img.src !== url) r.img.src = url; };
+  const put = src => { if (!here()) return; r.img.onload = r.img.onerror = strip; r.img.dataset.original = url; r.img.src = src; };
   const full = new Image();                           // the previous picture stays until the next one is ready: no black flash
   full.onload = () => put(url);
-  if (light === url) { full.onerror = () => put(url); full.src = url; }
-  else {
+  full.onerror = () => {
+    if (!here()) return;
+    r.img.removeAttribute('src');
+    delete r.img.dataset.original;
+    r.info.textContent += ' · Image unavailable';
+    strip();
+  };
+  if (light !== url) {
     const pre = new Image();
-    let shown = false;
-    pre.onload = () => { if (!full.complete || !full.naturalWidth) { shown = true; put(light); } };
-    pre.onerror = () => {};
-    pre.src = light; full.src = url;
-    full.onerror = () => { if (!shown) put(light); };
+    pre.onload = () => { if (!full.complete) put(light); };
+    pre.src = light;
   }
+  full.src = url;
   viewerApply();
 }
-function viewerZoom(f, cx, cy) {                      // cx, cy: zoom centre relative to the middle of the stage
+function viewerZoom(f, cx, cy, dx = 0, dy = 0) {      // cx, cy: zoom centre relative to the middle of the image frame
   const z = Math.min(12, Math.max(1, LB.z * f)), k = z / LB.z;
-  LB.x = cx - (cx - LB.x) * k; LB.y = cy - (cy - LB.y) * k; LB.z = z;
+  LB.x = cx - (cx - LB.x) * k + dx; LB.y = cy - (cy - LB.y) * k + dy; LB.z = z;
   if (z <= 1.001) { LB.z = 1; LB.x = LB.y = 0; }
   viewerApply();
 }
 function closeViewer() {
-  if (!LB.root) return;
-  document.removeEventListener('keydown', LB.root.onKey, true);
-  LB.root.el.remove(); LB.root = null;
+  const root = LB.root;
+  if (!root) return;
+  document.removeEventListener('keydown', root.onKey, true);
+  root.el.remove(); LB.root = null;
+  root.onClose?.(LB.list[LB.i]);
 }
-function openViewer(list, index) {
+function removeViewerImage(url) {
+  if (!LB.root) return;
+  const index = LB.list.findIndex(image => image.url === url);
+  if (index < 0) return;
+  const selected = LB.list[LB.i];
+  LB.list.splice(index, 1);
+  if (!LB.list.length) { closeViewer(); return; }
+  const next = LB.list.indexOf(selected);
+  LB.root.prev.hidden = LB.root.next.hidden = LB.list.length < 2;
+  if (next < 0) { LB.root.img.removeAttribute('src'); delete LB.root.img.dataset.original; }
+  viewerShow(next < 0 ? Math.min(index, LB.list.length - 1) : next);
+}
+function openViewer(list, index, onClose) {
   if (!list.length) return;
   closeViewer();
   const img = el('img', {draggable: false}), info = el('div', {id: 'lb-info'}), thumbs = el('div', {id: 'lb-thumbs'});
   const prev = el('button', {id: 'lb-prev', className: 'lb-nav', textContent: '‹', title: 'Previous (Left arrow)'});
   const next = el('button', {id: 'lb-next', className: 'lb-nav', textContent: '›', title: 'Next (Right arrow)'});
   const close = el('button', {id: 'lb-close', textContent: '✕', title: 'Close (Esc)'});
-  const stage = el('div', {id: 'lb-stage', title: 'Double click to zoom · Ctrl + wheel or Ctrl + plus / minus · drag to move'}, img, prev, next, close, info);
+  const frame = el('div', {id: 'lb-frame'}, img);
+  const stage = el('div', {id: 'lb-stage', title: 'Wheel to zoom · Ctrl + wheel to switch images · drag to move when zoomed'}, frame, prev, next, close, info);
   const root = el('div', {id: 'lb'}, stage, thumbs);
-  LB.list = list; LB.root = {el: root, img, info, thumbs, stage};
+  LB.list = list.slice(); LB.z = 1; LB.x = LB.y = 0;
+  LB.root = {el: root, img, info, thumbs, stage, prev, next, onClose, dragImages: location.hash === '#history'};
   prev.onclick = e => { e.stopPropagation(); viewerShow(LB.i - 1); };
   next.onclick = e => { e.stopPropagation(); viewerShow(LB.i + 1); };
   close.onclick = closeViewer;
   for (const b of [prev, next, close]) b.onpointerdown = e => e.stopPropagation();
   if (list.length < 2) prev.hidden = next.hidden = true;
-  const centre = e => { const r = stage.getBoundingClientRect(); return [e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2]; };
-  const fitScale = () => { const r = stage.getBoundingClientRect(); return Math.min(r.width / (img.naturalWidth || r.width), r.height / (img.naturalHeight || r.height)); };
+  const centre = e => { const r = frame.getBoundingClientRect(); return [e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2]; };
+  const fitScale = () => { const r = frame.getBoundingClientRect(); return Math.min(r.width / (img.naturalWidth || r.width), r.height / (img.naturalHeight || r.height)); };
   const outside = e => {                              // a click beside the picture (on the dark area) closes the viewer
     const [x, y] = centre(e), f = fitScale() * LB.z;
     return Math.abs(x - LB.x) > (img.naturalWidth || 1e9) * f / 2 || Math.abs(y - LB.y) > (img.naturalHeight || 1e9) * f / 2;
   };
-  stage.addEventListener('wheel', e => {
+  root.addEventListener('wheel', e => {
+    const delta = e.deltaY || e.deltaX;
+    if (!delta) return;
     e.preventDefault();
-    if (e.ctrlKey) viewerZoom(e.deltaY < 0 ? 1.2 : 1 / 1.2, ...centre(e));
-    else if (LB.z > 1.001) { LB.x -= e.deltaX; LB.y -= e.deltaY; viewerApply(); }
+    if (e.ctrlKey) {
+      if (LB.list.length > 1) viewerShow(LB.i + (delta < 0 ? -1 : 1));
+    } else viewerZoom(delta < 0 ? 1.2 : 1 / 1.2, ...(stage.contains(e.target) ? centre(e) : [0, 0]));
   }, {passive: false});
   // pointers: one drags (or swipes between pictures at 100 %), two pinch-zoom; a quick double click / tap zooms in or back out
   const pts = new Map();
-  let start = null, moved = 0, lastTap = 0, pinch = 0;
+  let start = null, moved = 0, lastTap = 0, pinch = null;
+  const pinchPoints = () => {
+    const [a, b] = pts.values();
+    return {d: Math.hypot(a[0] - b[0], a[1] - b[1]), clientX: (a[0] + b[0]) / 2, clientY: (a[1] + b[1]) / 2};
+  };
   stage.onpointerdown = e => {
-    try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+    const copyDrag = img.draggable && e.pointerType === 'mouse' && e.button === 0 && e.target === img && !outside(e);
+    if (!copyDrag) try { stage.setPointerCapture(e.pointerId); } catch (err) {}
     pts.set(e.pointerId, [e.clientX, e.clientY]);
-    if (pts.size === 1) { start = {x: e.clientX, y: e.clientY, px: LB.x, py: LB.y, target: e.target}; moved = 0; stage.style.cursor = LB.z > 1.001 ? 'grabbing' : 'default'; }
-    else if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a[0] - b[0], a[1] - b[1]); }
+    if (pts.size === 1) { start = {x: e.clientX, y: e.clientY, px: LB.x, py: LB.y, copyDrag}; moved = 0; stage.style.cursor = LB.z > 1.001 ? 'grabbing' : 'default'; }
+    else if (pts.size === 2) { pinch = pinchPoints(); lastTap = 0; }
+  };
+  img.ondragstart = e => {
+    const url = img.dataset.original;
+    if (!img.draggable || !start?.copyDrag || !url) { e.preventDefault(); return; }
+    e.dataTransfer.effectAllowed = 'copy';
+    e.dataTransfer.setData('text/uri-list', url);
+    e.dataTransfer.setData('text/plain', url);
+    pts.clear(); start = null; lastTap = 0;
   };
   stage.onpointermove = e => {
     if (!pts.has(e.pointerId)) return;
     pts.set(e.pointerId, [e.clientX, e.clientY]);
     if (pts.size === 2) {
-      const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), r = stage.getBoundingClientRect();
-      if (pinch) viewerZoom(d / pinch, (a[0] + b[0]) / 2 - r.left - r.width / 2, (a[1] + b[1]) / 2 - r.top - r.height / 2);
-      pinch = d; moved = 99;
-    } else if (start) {
+      const nextPinch = pinchPoints();
+      if (pinch?.d) viewerZoom(nextPinch.d / pinch.d, ...centre(pinch), nextPinch.clientX - pinch.clientX, nextPinch.clientY - pinch.clientY);
+      pinch = nextPinch;
+    } else if (pts.size === 1 && start) {
       const dx = e.clientX - start.x, dy = e.clientY - start.y;
       moved = Math.max(moved, Math.hypot(dx, dy));
       if (LB.z > 1.001) { LB.x = start.px + dx; LB.y = start.py + dy; viewerApply(); }
     }
   };
   stage.onpointerup = stage.onpointercancel = e => {
-    const had = pts.size;
-    pts.delete(e.pointerId);
-    if (had !== 1 || !start) { if (!pts.size) start = null; return; }
-    const dx = e.clientX - start.x, st = start;
+    if (!pts.delete(e.pointerId)) return;
+    if (pts.size) {
+      if (pts.size === 2) pinch = pinchPoints();
+      if (pts.size === 1) {
+        const [x, y] = pts.values().next().value;
+        start = {x, y, px: LB.x, py: LB.y, pinched: true};
+      }
+      return;
+    }
+    const st = start;
+    pinch = null;
     start = null; viewerApply();
-    if (moved > 8) { if (LB.z <= 1.001 && Math.abs(dx) > 60 && list.length > 1) viewerShow(LB.i + (dx < 0 ? 1 : -1)); return; }
+    if (!st || st.pinched || e.type === 'pointercancel') return;
+    const dx = e.clientX - st.x;
+    if (moved > 8) { if (!st.copyDrag && LB.z <= 1.001 && Math.abs(dx) > 60 && LB.list.length > 1) viewerShow(LB.i + (dx < 0 ? 1 : -1)); return; }
     const now = Date.now();
     if (now - lastTap < 320) {                        // double click
       lastTap = 0;
@@ -2224,24 +3513,55 @@ function openViewer(list, index) {
 const PAGE_SIZE = 100;
 const dayOf = t => stamp(t).slice(0, 10);
 const stamp = t => { const d = new Date(t), z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}:${z(d.getSeconds())}`; };
-async function renderHistory() {
-  document.title = 'History Log';
-  const root = el('div', {id: 'history'});
-  document.body.innerHTML = ''; document.body.append(root);
-  root.append(el('h2', {textContent: 'History Log'}), el('div', {textContent: 'Loading …', style: 'color:var(--dim)'}));
-  const local = lsGet(LOG_KEY, []).map(e => ({t: e.t, url: viewUrl(e.server, e.im), meta: e.meta}));
-  let entries = null, note = '', fromFolder = false;
+const historyActions = new BroadcastChannel('fooocus-history-actions');
+let historyActionId = 0;
+function requestHistoryEditor(message, timeout, timeoutError) {
+  const id = `${clientId}:${++historyActionId}`;
+  return new Promise((resolve, reject) => {
+    const reply = ({data}) => {
+      if (data.reply !== id) return;
+      clearTimeout(timer);
+      historyActions.removeEventListener('message', reply);
+      if (data.error) reject(new Error(data.error));
+      else resolve(data);
+    };
+    const timer = setTimeout(() => {
+      historyActions.removeEventListener('message', reply);
+      reject(new Error(timeoutError));
+    }, timeout);
+    historyActions.addEventListener('message', reply);
+    historyActions.postMessage({id, ...message});
+  });
+}
+async function findHistoryEditor() {
+  try {
+    const editor = window.opener;
+    if (editor && !editor.closed && editor.location.hash !== '#history' && typeof editor.applyHistoryAction === 'function') {
+      return {editor, merging: editor.isMergeMode()};
+    }
+  } catch (e) {}                                     // history can also be opened from another origin
+  return requestHistoryEditor({server: base()}, 2500, 'Open the Fooocus editor and try again.');
+}
+async function sendHistoryAction(action, {url, t, meta}, slot, target) {
+  target ??= await findHistoryEditor();
+  const request = {action, url, t, meta, slot};
+  if (target.editor) return target.editor.applyHistoryAction(request);
+  return requestHistoryEditor({editorId: target.editorId, request}, 60000, 'The Fooocus editor did not respond.');
+}
+async function loadHistory() {
+  const local = lsGet(LOG_KEY, []).map(e => ({t: e.t, url: viewUrl(e.server, e.im), im: e.im, meta: normalizeInpaintMeta(e.meta || {})}));
+  let entries = null, note = [], fromFolder = false;
   try {                                               // fooocus-ui extension installed: the output folder itself, survives restarts
-    const r = await fetch(base() + '/fooocus/history');
+    const r = await fetch(base() + '/fooocus/history', {cache: 'no-store'});
     if (r.ok) {
       const localMeta = new Map(local.map(e => [e.url, e.meta]));
       entries = (await r.json()).items.map(i => {
         const im = {filename: i.filename, subfolder: i.subfolder, type: 'output'}, url = viewUrl(base(), im);
         let meta = i.meta;
         if (!meta && i.chunks) try { meta = metaFromChunks(i.chunks); } catch (e) {}
-        return {t: i.t, url, im, meta: meta || localMeta.get(url) || {}};
+        return {t: i.t, url, im, meta: normalizeInpaintMeta(meta || localMeta.get(url) || {})};
       });
-      fromFolder = hasThumbs = true;
+      fromFolder = true;
     }
   } catch (e) {}
   if (!entries) {
@@ -2259,66 +3579,237 @@ async function renderHistory() {
         for (const o of Object.values(item.outputs || {})) for (const im of o.images || []) {
           if ((im.type || 'output') !== 'output') continue;
           const url = viewUrl(base(), im);
-          if (!known.has(url)) { known.add(url); entries.push({t, url, meta}); }
+          if (!known.has(url)) { known.add(url); entries.push({t, url, im, meta}); }
         }
       }
-      note = 'Showing images generated from this browser and since ComfyUI was last started. Install the fooocus-ui extension in ComfyUI to list the whole output folder, search it and delete from it.';
-    } catch (e) { note = 'ComfyUI is not reachable — showing only images generated from this browser.'; }
+      note = ['Showing images generated from this browser and since ComfyUI was last started. Install ',
+        externalLink('fooocus-ui', FOOOCUS_UI_URL), ' in ComfyUI to list the whole output folder, search it and delete from it.'];
+    } catch (e) { note = ['ComfyUI is not reachable — showing only images generated from this browser.']; }
   }
-  entries.sort((a, b) => a.t - b.t);                  // oldest first: page 1 is always the oldest full page, the newest page is the partial one
-  const hay = e => e.hay || (e.hay = [stamp(e.t), e.im ? e.im.filename : '', ...Object.values(e.meta || {})].join('\n').toLowerCase());
+  entries.sort((a, b) => a.t - b.t || a.url.localeCompare(b.url));
+  return {entries, note, fromFolder};
+}
+async function renderHistory() {
+  document.title = 'History Log';
+  const root = el('div', {id: 'history'});
+  document.body.innerHTML = ''; document.body.append(root);
+  root.append(el('h2', {textContent: 'History Log'}), el('div', {textContent: 'Loading …', style: 'color:var(--dim)'}));
+  let {entries, note, fromFolder} = await loadHistory();
+  hasThumbs = fromFolder;
+  const hay = e => e.hay || (e.hay = [stamp(e.t), imageName(e.im.filename), ...Object.values(e.meta)].join('\n').toLowerCase());
   const ALL = 'All time', today = dayOf(Date.now());
-  const days = [...new Set(entries.map(e => dayOf(e.t)))].reverse();
+  const historyDays = () => [...new Set(entries.map(e => dayOf(e.t)))].reverse();
+  let days = historyDays();
   const daySel = el('select');
   fillSelect(daySel, [ALL, ...days], days.includes(today) ? today : ALL);
   const search = el('input', {type: 'search', placeholder: 'Search prompts, LoRAs, models …'});
   const count = el('span', {style: 'color:var(--dim)'}), pager = el('div', {className: 'pager'}), list = el('div');
-  let page = 0, timer = 0;                            // page 0 = newest
-  const draw = () => {
+  const notice = el('div', {className: 'note', style: 'margin:0 0 12px', hidden: !note.length}, ...note);
+  const empty = el('div', {style: 'color:var(--dim);padding:20px 0'}), cards = new Map();
+  let page = 0, followNewest = true, timer = 0, pageItems = [], targetId = 0;
+  let refreshing = false, refreshAgain = false, revision = 0;
+  const filtered = () => {
     const q = search.value.trim().toLowerCase(), day = daySel.value;
-    const found = entries.filter(e => (day === ALL || dayOf(e.t) === day) && (!q || hay(e).includes(q)));
+    return entries.filter(e => (day === ALL || dayOf(e.t) === day) && (!q || hay(e).includes(q)));
+  };
+  let openTargets;
+  const closeTargets = () => {
+    if (!openTargets) return;
+    openTargets.targets.hidden = true;
+    openTargets.button.setAttribute('aria-expanded', 'false');
+    openTargets = null;
+  };
+  document.addEventListener('click', e => {
+    if (openTargets && !openTargets.button.parentElement.contains(e.target)) closeTargets();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || !openTargets) return;
+    const {button} = openTargets;
+    closeTargets();
+    button.focus();
+  });
+  let focusedCard, focusTimer;
+  const focusImage = image => {
+    if (!image) return;
+    let card = [...list.children].find(row => row.dataset.url === image.url);
+    if (!card) {
+      const found = filtered(), index = found.findIndex(e => e.url === image.url);
+      if (index < 0) return;
+      page = Math.floor(index / PAGE_SIZE) + 1;
+      followNewest = page === Math.ceil(found.length / PAGE_SIZE);
+      draw();
+      card = cards.get(found[index]);
+    }
+    if (!card) return;
+    clearTimeout(focusTimer);
+    focusedCard?.classList.remove('history-focus');
+    focusedCard = card;
+    card.classList.add('history-focus');
+    card.querySelector('img').focus({preventScroll: true});
+    list.style.paddingTop = list.style.paddingBottom = '';
+    const rect = card.getBoundingClientRect(), center = rect.top + rect.height / 2;
+    const topSpace = innerHeight / 2 - (center + scrollY);
+    const bottomSpace = center + innerHeight / 2 - root.getBoundingClientRect().bottom;
+    if (topSpace > 0) list.style.paddingTop = `${Math.ceil(topSpace)}px`;
+    if (bottomSpace > 0) list.style.paddingBottom = `${Math.ceil(bottomSpace)}px`;
+    card.scrollIntoView({block: 'center'});
+    focusTimer = setTimeout(() => card.classList.remove('history-focus'), 2500);
+  };
+  const removeImage = url => {
+    revision++;
+    const index = entries.findIndex(e => e.url === url);
+    if (index < 0) return;
+    entries.splice(index, 1);
+    removeViewerImage(url);
+    draw();
+  };
+  const draw = () => {
+    const found = filtered();
     const pages = Math.max(1, Math.ceil(found.length / PAGE_SIZE));
-    if (page < 1 || page > pages) page = pages;
-    const items = found.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).reverse();
+    page = followNewest ? pages : Math.min(page, pages);
+    pageItems = found.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).reverse();
     count.textContent = `${found.length} image${found.length === 1 ? '' : 's'}`;
     pager.innerHTML = ''; pager.hidden = pages < 2;
     pager.append(el('span', {textContent: 'current page:'}));
     for (let p = pages; p >= 1; p--) {
       const a = el('a', {textContent: p, className: p === page ? 'on' : ''});
-      a.onclick = () => { page = p; draw(); scrollTo(0, 0); };
+      a.onclick = () => { page = p; followNewest = p === pages; draw(); scrollTo(0, 0); };
       pager.append(a);
     }
-    list.innerHTML = '';
-    if (!items.length) list.append(el('div', {textContent: q ? 'Nothing found.' : 'Nothing generated yet.', style: 'color:var(--dim);padding:20px 0'}));
-    const viewList = items.map(e => ({url: e.url}));
-    items.forEach((e, k) => {
-      const table = el('div', {className: 'meta'});
-      const rows = Object.assign({'Date': stamp(e.t)}, e.meta);
-      for (const [key, v] of Object.entries(rows)) if (v !== '' && v != null) table.append(el('div', {className: 'k', textContent: key}), el('div', {className: 'v', textContent: String(v)}));
-      const img = thumbImg(e.url, e.t, {loading: 'lazy'});
-      img.onclick = () => openViewer(viewList, k);
-      const side = el('div', {className: 'side'}, table);
-      if (fromFolder) {                               // delete: press Delete, then the tick that appears next to it
-        const del = el('button', {className: 'small', textContent: 'Delete', title: 'Delete this image file'});
-        const ok = el('button', {className: 'small', textContent: '✓', title: 'Confirm: delete the file for good', hidden: true});
-        del.onclick = () => { ok.hidden = !ok.hidden; };
-        ok.onclick = async () => {
-          try {
-            await api('/fooocus/history/delete', {filename: e.im.filename, subfolder: e.im.subfolder});
-            entries.splice(entries.indexOf(e), 1); draw();
-          } catch (err) { ok.hidden = true; del.textContent = 'Delete failed'; }
-        };
-        side.append(el('div', {className: 'row'}, del, ok));
+    const visible = new Set(pageItems);
+    for (const [entry, card] of cards) {
+      if (visible.has(entry)) continue;
+      if (openTargets && card.contains(openTargets.button)) closeTargets();
+      if (focusedCard === card) {
+        clearTimeout(focusTimer); focusedCard = null;
+        list.style.paddingTop = list.style.paddingBottom = '';
       }
-      list.append(el('div', {className: 'hrow block'}, img, side));
+      cards.delete(entry);
+      card.remove();
+    }
+    if (!pageItems.length) {
+      empty.textContent = search.value.trim() ? 'Nothing found.' : 'Nothing generated yet.';
+      list.append(empty);
+    } else empty.remove();
+    pageItems.forEach((entry, index) => {
+      if (!cards.has(entry)) cards.set(entry, makeCard(entry));
+      const card = cards.get(entry);
+      if (list.children[index] !== card) list.insertBefore(card, list.children[index] || null);
     });
   };
-  search.oninput = () => { clearTimeout(timer); timer = setTimeout(() => { page = 0; draw(); }, 200); };
-  daySel.onchange = () => { page = 0; draw(); };
+  const makeCard = e => {
+    const table = el('div', {className: 'meta'});
+    const rows = {Name: '', Date: stamp(e.t), ...e.meta};
+    rows.Name = imageName(e.im.filename);
+    for (const [key, v] of Object.entries(rows)) if (v !== '' && v != null) table.append(el('div', {className: 'k', textContent: key}), el('div', {className: 'v', textContent: String(v)}));
+    const img = thumbImg(e.url, e.t, {loading: 'lazy', tabIndex: 0});
+    img.onclick = () => openViewer(pageItems, pageItems.indexOf(e), focusImage);
+    img.onkeydown = event => { if (event.key === 'Enter') img.click(); };
+    const side = el('div', {className: 'side'}, table);
+    const actions = el('div', {className: 'row actions'});
+    if (fromFolder) {                               // delete: press Delete, then the tick that appears next to it
+      const del = el('button', {className: 'small', textContent: 'Delete', title: 'Delete this image file'});
+      const ok = el('button', {className: 'small', textContent: '✓', title: 'Confirm: delete the file for good', hidden: true});
+      del.onclick = () => toggleDeleteConfirm(ok);
+      ok.onclick = async () => {
+        if (ok.hidden || ok.disabled) return;
+        del.disabled = ok.disabled = true;
+        hideDeleteConfirm(ok);
+        try {
+          await deleteOutputImage(e.im);
+          removeImage(e.url);
+        } catch (err) { ok.hidden = true; del.textContent = 'Delete failed'; }
+        finally { del.disabled = ok.disabled = false; }
+      };
+      actions.append(el('div', {className: 'row'}, del, ok));
+    }
+    const status = el('div', {className: 'note', role: 'status', hidden: true});
+    const run = async (button, action) => {
+      button.disabled = true; status.hidden = true;
+      try { status.textContent = await action() || ''; }
+      catch (err) { status.textContent = err.message; }
+      finally { button.disabled = false; status.hidden = !status.textContent; }
+    };
+    const apply = el('button', {className: 'small', textContent: 'Apply Metadata',
+      disabled: !Object.entries(e.meta).some(([k, v]) => k !== 'Source' && k !== 'Name' && hasMetaValue(v))});
+    apply.onclick = () => run(apply, async () => { await sendHistoryAction('metadata', e); return 'Metadata applied.'; });
+    const button = el('button', {className: 'small', textContent: 'To Inpaint'});
+    const targets = el('div', {id: `inpaint-targets-${++targetId}`, className: 'inpaint-targets', hidden: true});
+    let target;
+    button.setAttribute('aria-controls', targets.id);
+    for (const [slot, label] of [['inp', 'First Image'], ['merge', 'Second Image']]) {
+      const choice = el('button', {className: 'small', textContent: label});
+      choice.onclick = () => {
+        closeTargets();
+        run(button, async () => { await sendHistoryAction('inpaint', e, slot, target); return `Image opened in ${label}.`; });
+      };
+      targets.append(choice);
+    }
+    button.onclick = () => {
+      const wasOpen = openTargets?.button === button;
+      closeTargets();
+      if (wasOpen) return;
+      run(button, async () => {
+        target = await findHistoryEditor();
+        if (!target.merging) { await sendHistoryAction('inpaint', e, 'inp', target); return 'Image opened in Inpaint.'; }
+        if (!button.isConnected) return;
+        closeTargets();
+        targets.classList.remove('above');
+        targets.hidden = false;
+        targets.classList.toggle('above', targets.getBoundingClientRect().bottom > innerHeight);
+        button.setAttribute('aria-expanded', 'true');
+        openTargets = {button, targets};
+      });
+    };
+    actions.append(el('div', {className: 'row use-actions'}, apply, el('div', {className: 'inpaint-action'}, button, targets)));
+    side.append(actions, status);
+    const card = el('div', {className: 'hrow block'}, img, side);
+    card.dataset.url = e.url;
+    return card;
+  };
+  const refresh = async () => {
+    if (refreshing) { refreshAgain = true; return; }
+    refreshing = true;
+    const started = revision;
+    try {
+      const snapshot = await loadHistory();
+      if (started !== revision || (fromFolder && !snapshot.fromFolder)) return;
+      const previous = new Map(entries.map(entry => [entry.url, entry]));
+      const sameSource = fromFolder === snapshot.fromFolder;
+      const next = snapshot.entries.map(entry => {
+        const old = previous.get(entry.url);
+        previous.delete(entry.url);
+        return sameSource && old?.t === entry.t && JSON.stringify(old.meta) === JSON.stringify(entry.meta) ? old : entry;
+      });
+      notice.replaceChildren(...snapshot.note);
+      notice.hidden = !snapshot.note.length;
+      if (sameSource && entries.length === next.length && entries.every((entry, i) => entry === next[i])) return;
+      entries = next;
+      fromFolder = hasThumbs = snapshot.fromFolder;
+      const nextDays = historyDays();
+      if (days.join() !== nextDays.join()) {
+        const day = daySel.value;
+        days = nextDays;
+        fillSelect(daySel, days.includes(day) || day === ALL ? [ALL, ...days] : [ALL, ...days, day], day);
+      }
+      draw();
+      for (const url of previous.keys()) removeViewerImage(url);
+    } finally {
+      refreshing = false;
+      if (refreshAgain) { refreshAgain = false; refresh(); }
+    }
+  };
+  search.oninput = () => { clearTimeout(timer); timer = setTimeout(() => { followNewest = true; draw(); }, 200); };
+  daySel.onchange = () => { followNewest = true; draw(); };
   root.innerHTML = '';
   root.append(el('div', {className: 'bar'}, el('h2', {textContent: 'History Log'}), daySel, search, count));
-  if (note) root.append(el('div', {className: 'note', textContent: note, style: 'margin:0 0 12px'}));
-  root.append(pager, list);
+  root.append(notice, pager, list);
+  outputChanges.addEventListener('message', ({data}) => {
+    if (data.deleted) removeImage(data.url);
+    else refresh();
+  });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  setInterval(() => { if (!document.hidden) refresh(); }, 12000);
   draw();
 }
 
@@ -2326,16 +3817,22 @@ async function renderHistory() {
 function readJsonFile(file) { return file.text().then(t => JSON.parse(t)); }
 function init() {
   currentWf();
+  outputChanges.addEventListener('message', ({data}) => { if (data.deleted) removeGalleryImage(data.url); });
   $('#prompt').value = state.prompt;
   $('#prompt').oninput = e => { state.prompt = e.target.value; save(); };
   $('#prompt').onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); generate(); } };
   $('#negative').oninput = e => { state.negative = e.target.value; save(); };
+  drawPreviewIcon($('#preview-trash'), 'M18 12V8h12v4h10v7h-4l-2 20H14l-2-20H8v-7z', 3.5, 'M13 19h22m-14 5v9m6-9v9');
+  drawPreviewIcon($('#preview-to-input'), 'M18 7h12v15h9L24 40 9 22h9z', 3.5);
+  $('#preview-trash').onclick = () => toggleDeleteConfirm($('#preview-confirm'));
+  $('#preview-confirm').onclick = deletePreview;
+  $('#preview-to-input').onclick = usePreviewAsInput;
   $('#generate').onclick = generate; $('#skip').onclick = skip; $('#stop').onclick = stop;
   $('#advanced').checked = state.advanced;
   document.body.classList.toggle('simple', !state.advanced);
   $('#advanced').onchange = e => { state.advanced = e.target.checked; document.body.classList.toggle('simple', !state.advanced); save(); };
   $('#random').onchange = e => { state.random = e.target.checked; $('#seed-box').hidden = state.random; save(); };
-  $('#seed').onchange = e => { state.seed = e.target.value.replace(/\D/g, '') || '0'; e.target.value = state.seed; save(); };
+  $('#seed').onchange = e => { state.seed = e.target.value.replace(/\D/g, '') || '0'; delete state.seedImported; e.target.value = state.seed; save(); };
   $('#history-link').href = location.href.split('#')[0] + '#history';
   $('#history-link').onclick = () => lsSet(LS_KEY, state);
   document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
@@ -2365,7 +3862,7 @@ function init() {
       let name = f.name.replace(/\.json$/i, '');
       if (name in TEMPLATES) name += ' (custom)';
       state.customWfs[name] = wf; delete state.perWf[name]; state.workflow = name;
-      showMsg(''); save(); renderStyleTab(); renderModelTab(); renderAdvTab();
+      showMsg(''); save(); renderStyleTab(); renderModelTab(); renderAdvTab(); renderInputPanel();
     } catch (err) { showMsg('Could not import workflow: ' + err.message); }
   };
   $('#refresh').onclick = connect;
@@ -2376,11 +3873,10 @@ function init() {
   $('#input-image').onchange = e => { state.inputImage = e.target.checked; save(); renderInputPanel(); };
   document.querySelectorAll('#itabs button').forEach(b => b.onclick = () => { state.itab = b.dataset.itab; save(); renderInputPanel(); });
   $('#upscaler').onchange = e => { state.upscaler = e.target.value; save(); };
-  $('#inp-adv').onchange = e => { state.inpaint.advanced = e.target.checked; save(); renderInputPanel(); if (slots.inp && slots.inp.redraw) slots.inp.redraw(); };
   $('#inp-method').onchange = e => {
-    const o = state.inpaint; o.method = e.target.value;
-    o.denoise = INPAINT_METHODS[o.method][1]; o.field = INPAINT_METHODS[o.method][2];
+    state.inpaint.method = e.target.value;
     save(); renderInputPanel();
+    slots.inp?.redrawMask();
   };
   $('#inp-extra').oninput = e => { state.inpaint.extra = e.target.value; save(); };
   $('#mask-prompt').oninput = e => { state.inpaint.maskPrompt = e.target.value; save(); };
@@ -2391,6 +3887,7 @@ function init() {
   $('#inp-undo').onclick = inpUndo;
   $('#inp-clear').onclick = inpClear;
   $('#brush').oninput = () => { if (slots.inp && slots.inp.ringRefresh) slots.inp.ringRefresh(); };
+  setupPaintPalette();
   $('#zoom-in').onclick = () => inpZoom((slots.inp ? slots.inp.zoom : 1) * 1.25);
   $('#zoom-out').onclick = () => inpZoom((slots.inp ? slots.inp.zoom : 1) / 1.25);
   $('#zoom-val').ondblclick = () => inpZoom(1);
@@ -2406,9 +3903,10 @@ function init() {
   ib.onpointerleave = () => { inpHover = false; };
   document.addEventListener('pointerdown', e => { inpFocus = !!(e.target.closest && e.target.closest('[data-ipanel=inpaint]')); }, true);
   window.addEventListener('resize', inpLayout);
+  window.addEventListener('scroll', () => slots.inp?.ringRefresh(), {passive: true});
   // inpaint shortcuts, only while the pointer is over the picture or the inpaint tab was clicked last
   document.addEventListener('keydown', e => {
-    if (viewerOpen() || !inpActive()) return;
+    if (viewerOpen() || !inpActive() || e.target.closest?.('#color-picker')) return;
     const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) && e.target.type !== 'range' && e.target.type !== 'checkbox';
     if (typing) return;
     const z = slots.inp.zoom || 1, ctrl = e.ctrlKey || e.metaKey;
@@ -2420,6 +3918,8 @@ function init() {
     else if (ctrl && e.code === 'Delete') inpClear();
     else if (!ctrl && !e.altKey && e.code === 'KeyE') setTool('brush');
     else if (!ctrl && !e.altKey && e.code === 'KeyQ') setTool('eraser');
+    else if (!isMergeMode() && !ctrl && !e.altKey && e.code === 'KeyW') setTool('spray');
+    else if (!isMergeMode() && !ctrl && !e.altKey && e.code === 'KeyR') setTool('recolor');
     else if (e.code === 'Space') spaceHeld = true;
     else hit = false;
     if (hit) e.preventDefault();
@@ -2427,22 +3927,45 @@ function init() {
   document.addEventListener('keyup', e => { if (e.code === 'Space') spaceHeld = false; });
   drops.uov = makeDrop($('#uov-drop'), 'uov');
   drops.inp = makeDrop($('#inp-drop'), 'inp', s => { $('#inp-tools').hidden = !s; if (s) s.zoom = 1; inpLayout(); });
-  drops.mask = makeDrop($('#mask-drop'), 'mask', () => { if (slots.inp && slots.inp.redraw) slots.inp.redraw(); });
-  for (const k of ['brush', 'eraser']) $('#tool-' + k).onclick = () => setTool(k);
+  drops.mask = makeDrop($('#mask-drop'), 'mask', () => slots.inp?.redrawMask());
+  drops.merge = makeDrop($('#merge-drop'), 'merge', () => { if (isMergeMode()) slots.inp?.redrawMask(); });
+  for (const k of PAINT_TOOLS) $('#tool-' + k).onclick = () => setTool(k);
   drops.meta = makeDrop($('#meta-drop'), 'meta', async s => {
-    if (s) try { s.meta = metaFromChunks(parsePngText(await s.file.arrayBuffer())); } catch (e) { s.meta = null; }
+    if (s) {
+      s.meta = await readImageMetadata(s.file);
+      if (slots.meta !== s) return;
+      importSeed(s.meta?.Seed);
+    }
     renderMetaBox();
   });
-  // Ctrl+V: a picture from the clipboard goes into the open Input Image tab
+  // Keep text paste in the prompt and route image paste to the open Input Image tab.
   document.addEventListener('paste', e => {
-    const f = [...((e.clipboardData && e.clipboardData.files) || [])].find(x => x.type.startsWith('image/'));
-    const a = document.activeElement, inText = a && (a.tagName === 'TEXTAREA' || a.isContentEditable || (a.tagName === 'INPUT' && !/^(checkbox|radio|range|button|file)$/.test(a.type)));
-    if (!f || inText || !state.inputImage || viewerOpen()) return;
+    if (!state.inputImage || viewerOpen()) return;
+    const merging = state.itab === 'inpaint' && isMergeMode();
+    const a = document.activeElement;
+    const inpaintPrompt = a === $('#inp-extra') && state.itab === 'inpaint';
+    const inText = a && (a.tagName === 'TEXTAREA' || a.isContentEditable || (a.tagName === 'INPUT' && !/^(checkbox|radio|range|button|file)$/.test(a.type)));
+    if (inText && !inpaintPrompt && !merging) return;
+    const data = e.clipboardData;
+    const f = Array.from(data?.files || []).find(file => file.type.startsWith('image/')) ||
+      Array.from(data?.items || []).find(item => item.kind === 'file' && item.type.startsWith('image/'))?.getAsFile();
+    if (!f) return;
     e.preventDefault();
-    drops[{uov: 'uov', inpaint: 'inp', meta: 'meta'}[state.itab]].take(f);
+    const key = merging && slots.inp ? 'merge' : INPUT_SLOTS[state.itab];
+    drops[key].take(f);
   });
   window.addEventListener('dragover', e => e.preventDefault());
   window.addEventListener('drop', e => e.preventDefault());
+  historyActions.addEventListener('message', async ({data}) => {
+    if (data.server === base()) {
+      historyActions.postMessage({reply: data.id, editorId: clientId, merging: isMergeMode()});
+      return;
+    }
+    if (data.editorId !== clientId || !data.request) return;
+    let error;
+    try { await applyHistoryAction(data.request); } catch (e) { error = e.message; }
+    historyActions.postMessage({reply: data.id, error});
+  });
   try { renderAll(); } catch (e) { console.error(e); }   // a drawing problem must never keep the page from connecting
   showTab(state.tab);
   setupAreas();
